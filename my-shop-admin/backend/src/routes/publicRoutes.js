@@ -1,11 +1,19 @@
 const express = require("express");
-const { admin, getDb } = require("../config/firebase");
+const { admin, getDb, getFirebaseStatus } = require("../config/firebase");
 const { apiLimiter } = require("../middleware/rateLimit");
 const { sanitizeId, toIsoDate, parsePagination } = require("../middleware/validate");
 const {
   defaultSocialSupportSettings,
   defaultAnnouncementSettings,
 } = require("../services/socialPopupDefaults");
+const {
+  defaultSiteConfig,
+  defaultWelcomePopup,
+  defaultFunZoneConfig,
+  defaultAiSettings,
+  ensureInitialCatalogSeeded,
+  buildFallbackStorefrontSnapshot,
+} = require("../services/catalogSeedService");
 
 const router = express.Router();
 router.use(apiLimiter);
@@ -18,34 +26,6 @@ const EVENT_TO_FIELD = {
   tt_click: "ttClicks",
   tg_click: "tgClicks",
 };
-
-function defaultSiteConfig() {
-  return {
-    siteName: "MY Shop",
-    tagline: "Shop Smart • Live Happy!",
-    description: "Next-generation futuristic e-commerce platform.",
-    logoUrl: "",
-    contactEmail: "support@myshop.example",
-    contactPhone: "+880 1700-000000",
-    address: "Gulshan-2, Dhaka 1212, Bangladesh",
-    announcementText: "Shop Smart • Live Happy!",
-    announcementActive: true,
-    maintenanceMode: false,
-    primaryHex: "#8B5CF6",
-    accentHex: "#00D4FF",
-    footerText: "© MY Shop • Shop Smart, Live Happy!",
-    currencySymbol: "৳",
-    banners: [],
-    paymentSettings: {
-      bKash: { enabled: true, mode: "SANDBOX", instructions: "Pay via bKash merchant gateway" },
-      Nagad: { enabled: true, mode: "SANDBOX", instructions: "Pay via Nagad checkout" },
-      Rocket: { enabled: true, mode: "SANDBOX", instructions: "DBBL Rocket digital wallet" },
-      Visa: { enabled: true, mode: "SANDBOX", instructions: "3DS Verified Visa Gateway" },
-      Mastercard: { enabled: true, mode: "SANDBOX", instructions: "Mastercard Global Gateway" },
-      CashOnDelivery: { enabled: true, mode: "ACTIVE", instructions: "Pay cash on doorstep delivery" },
-    },
-  };
-}
 
 function mapPublicProduct(doc) {
   const p = doc.data() || {};
@@ -66,11 +46,18 @@ function mapPublicProduct(doc) {
     featured: Boolean(p.featured),
     bestSeller: Boolean(p.bestSeller),
     trending: Boolean(p.trending),
+    flashSale: Boolean(p.flashSale),
+    todaysDeal: Boolean(p.todaysDeal),
+    newArrival: Boolean(p.newArrival),
     freeDelivery: Boolean(p.freeDelivery),
+    accentHex: p.accentHex || "#8B5CF6",
+    secondaryHex: p.secondaryHex || "#00D4FF",
     colors: Array.isArray(p.colors) ? p.colors : [],
     sizes: Array.isArray(p.sizes) ? p.sizes : [],
     variants: Array.isArray(p.variants) ? p.variants : [],
     specs: Array.isArray(p.specs) ? p.specs : [],
+    reviews: Array.isArray(p.reviews) ? p.reviews : [],
+    qaList: Array.isArray(p.qaList) ? p.qaList : [],
     imageUrls: Array.isArray(p.imageUrls) ? p.imageUrls : [],
     mainImageUrl: p.mainImageUrl || (Array.isArray(p.imageUrls) && p.imageUrls[0]) || "",
     sellerName: p.sellerName || "MY Shop Official",
@@ -92,7 +79,14 @@ function isProductVisibleToCustomer(p) {
 
 router.get("/storefront-bootstrap", async (_req, res, next) => {
   try {
+    const fb = getFirebaseStatus();
+    if (!fb.connected) {
+      return res.json(buildFallbackStorefrontSnapshot());
+    }
+
     const db = getDb();
+    await ensureInitialCatalogSeeded(db);
+
     const [
       siteSnap,
       annSnap,
@@ -103,6 +97,8 @@ router.get("/storefront-bootstrap", async (_req, res, next) => {
       brandSnap,
       couponSnap,
       zoneSnap,
+      funZoneSnap,
+      aiSnap,
     ] = await Promise.all([
       db.collection("site_config").doc("main").get(),
       db.collection("announcement_settings").doc("main").get(),
@@ -113,6 +109,8 @@ router.get("/storefront-bootstrap", async (_req, res, next) => {
       db.collection("catalog_brands").get(),
       db.collection("catalog_coupons").get(),
       db.collection("delivery_zones").get(),
+      db.collection("fun_zone_config").doc("rules").get(),
+      db.collection("ai_settings").doc("main").get(),
     ]);
 
     const products = prodSnap.docs
@@ -122,9 +120,12 @@ router.get("/storefront-bootstrap", async (_req, res, next) => {
 
     const categories = catSnap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((c) => c.enabled !== false)
       .sort((a, b) => Number(a.orderIndex || 0) - Number(b.orderIndex || 0));
 
-    const brands = brandSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const brands = brandSnap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((b) => b.enabled !== false);
 
     const coupons = couponSnap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
@@ -134,16 +135,21 @@ router.get("/storefront-bootstrap", async (_req, res, next) => {
       .map((d) => ({ id: d.id, ...d.data() }))
       .filter((z) => z.active !== false);
 
+    const popups = popupsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
     res.json({
+      firebaseConnected: true,
       siteConfig: siteSnap.exists ? { ...defaultSiteConfig(), ...siteSnap.data() } : defaultSiteConfig(),
       announcement: annSnap.exists ? annSnap.data() : defaultAnnouncementSettings(),
       socialSupport: socialSnap.exists ? socialSnap.data() : defaultSocialSupportSettings(),
-      popups: popupsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+      popups: popups.length > 0 ? popups : [defaultWelcomePopup()],
       products,
       categories,
       brands,
       coupons,
       deliveryZones,
+      funZone: funZoneSnap.exists ? { ...defaultFunZoneConfig(), ...funZoneSnap.data() } : defaultFunZoneConfig(),
+      aiSettings: aiSnap.exists ? { ...defaultAiSettings(), ...aiSnap.data() } : defaultAiSettings(),
     });
   } catch (err) {
     next(err);
@@ -162,10 +168,18 @@ router.get("/products", async (req, res, next) => {
     const freeDelivery = req.query.freeDelivery === "true";
     const sort = String(req.query.sort || "newest");
 
-    const snap = await getDb().collection("catalog_products").get();
-    let list = snap.docs
-      .filter((d) => isProductVisibleToCustomer(d.data() || {}))
-      .map(mapPublicProduct);
+    const fb = getFirebaseStatus();
+    let list;
+    if (!fb.connected) {
+      list = buildFallbackStorefrontSnapshot().products;
+    } else {
+      const db = getDb();
+      await ensureInitialCatalogSeeded(db);
+      const snap = await db.collection("catalog_products").get();
+      list = snap.docs
+        .filter((d) => isProductVisibleToCustomer(d.data() || {}))
+        .map(mapPublicProduct);
+    }
 
     if (search) {
       list = list.filter((p) =>
@@ -199,6 +213,15 @@ router.get("/products", async (req, res, next) => {
 router.get("/products/:id", async (req, res, next) => {
   try {
     const id = sanitizeId(req.params.id, "prod");
+    const fb = getFirebaseStatus();
+    if (!fb.connected) {
+      const fallback = buildFallbackStorefrontSnapshot().products;
+      const product = fallback.find((p) => p.id === id);
+      if (!product) return res.status(404).json({ error: "Product not found." });
+      const related = fallback.filter((p) => p.id !== product.id && p.categoryId === product.categoryId).slice(0, 4);
+      return res.json({ product, related });
+    }
+
     const db = getDb();
     const snap = await db.collection("catalog_products").doc(id).get();
     if (!snap.exists || !isProductVisibleToCustomer(snap.data() || {})) {
@@ -223,9 +246,15 @@ router.get("/products/:id", async (req, res, next) => {
 
 router.get("/categories", async (_req, res, next) => {
   try {
-    const snap = await getDb().collection("catalog_categories").get();
+    if (!getFirebaseStatus().connected) {
+      return res.json({ items: buildFallbackStorefrontSnapshot().categories });
+    }
+    const db = getDb();
+    await ensureInitialCatalogSeeded(db);
+    const snap = await db.collection("catalog_categories").get();
     const items = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((c) => c.enabled !== false)
       .sort((a, b) => Number(a.orderIndex || 0) - Number(b.orderIndex || 0));
     res.json({ items });
   } catch (err) {
@@ -235,8 +264,13 @@ router.get("/categories", async (_req, res, next) => {
 
 router.get("/brands", async (_req, res, next) => {
   try {
-    const snap = await getDb().collection("catalog_brands").get();
-    res.json({ items: snap.docs.map((d) => ({ id: d.id, ...d.data() })) });
+    if (!getFirebaseStatus().connected) {
+      return res.json({ items: buildFallbackStorefrontSnapshot().brands });
+    }
+    const db = getDb();
+    await ensureInitialCatalogSeeded(db);
+    const snap = await db.collection("catalog_brands").get();
+    res.json({ items: snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((b) => b.enabled !== false) });
   } catch (err) {
     next(err);
   }
@@ -244,6 +278,9 @@ router.get("/brands", async (_req, res, next) => {
 
 router.get("/site-config", async (_req, res, next) => {
   try {
+    if (!getFirebaseStatus().connected) {
+      return res.json(defaultSiteConfig());
+    }
     const snap = await getDb().collection("site_config").doc("main").get();
     res.json(snap.exists ? { ...defaultSiteConfig(), ...snap.data() } : defaultSiteConfig());
   } catch (err) {
@@ -253,7 +290,12 @@ router.get("/site-config", async (_req, res, next) => {
 
 router.get("/coupons", async (_req, res, next) => {
   try {
-    const snap = await getDb().collection("catalog_coupons").get();
+    if (!getFirebaseStatus().connected) {
+      return res.json({ items: buildFallbackStorefrontSnapshot().coupons });
+    }
+    const db = getDb();
+    await ensureInitialCatalogSeeded(db);
+    const snap = await db.collection("catalog_coupons").get();
     const items = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
       .filter((c) => c.active !== false);
@@ -265,6 +307,9 @@ router.get("/coupons", async (_req, res, next) => {
 
 router.get("/delivery-zones", async (_req, res, next) => {
   try {
+    if (!getFirebaseStatus().connected) {
+      return res.json({ items: [] });
+    }
     const snap = await getDb().collection("delivery_zones").get();
     const items = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
@@ -277,6 +322,9 @@ router.get("/delivery-zones", async (_req, res, next) => {
 
 router.get("/social-support", async (_req, res, next) => {
   try {
+    if (!getFirebaseStatus().connected) {
+      return res.json(defaultSocialSupportSettings());
+    }
     const snap = await getDb().collection("social_support_settings").doc("main").get();
     res.json(snap.exists ? snap.data() : defaultSocialSupportSettings());
   } catch (err) {
@@ -286,9 +334,13 @@ router.get("/social-support", async (_req, res, next) => {
 
 router.get("/popups", async (_req, res, next) => {
   try {
+    if (!getFirebaseStatus().connected) {
+      return res.json({ items: [defaultWelcomePopup()] });
+    }
     const snap = await getDb().collection("popup_notices").where("active", "==", true).get();
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     res.json({
-      items: snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+      items: items.length > 0 ? items : [defaultWelcomePopup()],
     });
   } catch (err) {
     next(err);
@@ -297,6 +349,9 @@ router.get("/popups", async (_req, res, next) => {
 
 router.get("/announcements", async (_req, res, next) => {
   try {
+    if (!getFirebaseStatus().connected) {
+      return res.json(defaultAnnouncementSettings());
+    }
     const snap = await getDb().collection("announcement_settings").doc("main").get();
     res.json(snap.exists ? snap.data() : defaultAnnouncementSettings());
   } catch (err) {
@@ -310,6 +365,9 @@ router.post("/analytics", async (req, res, next) => {
     const field = EVENT_TO_FIELD[event];
     if (!field) {
       return res.status(400).json({ error: "Unsupported analytics event type." });
+    }
+    if (!getFirebaseStatus().connected) {
+      return res.json({ ok: true, recorded: field, offline: true });
     }
     await getDb()
       .collection("analytics_counters")

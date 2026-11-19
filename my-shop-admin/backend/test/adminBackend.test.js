@@ -73,6 +73,22 @@ test("Routing serves Customer Website at /, Admin Panel ONLY at /admin, and JSON
   assert.equal(unknownApi.status, 404);
   const unknownJson = await unknownApi.json();
   assert.equal(unknownJson.error, "API endpoint not found.");
+
+  // Storefront bootstrap & social/popup public endpoints must return full MY Shop data (never 503)
+  const bootRes = await fetch(`${baseUrl}/api/public/storefront-bootstrap`);
+  assert.equal(bootRes.status, 200);
+  const boot = await bootRes.json();
+  assert.equal(boot.categories.length, 16);
+  assert.equal(boot.brands.length, 8);
+  assert.ok(boot.products.length >= 18);
+  assert.ok(boot.coupons.some((c) => c.code === "MYSHOP10"));
+  assert.equal(boot.socialSupport.platforms.length, 4);
+  assert.deepEqual(
+    boot.socialSupport.platforms.map((p) => p.id),
+    ["facebook", "youtube", "tiktok", "telegram"]
+  );
+  assert.ok(boot.popups.length >= 1);
+  assert.equal(boot.popups[0].includeSocialButtons, true);
 });
 
 test("Default social support config has zero hardcoded social URLs and validates bad URLs", () => {
@@ -318,6 +334,16 @@ test("Admin login, Admin->Customer live catalog sync, Customer registration/cart
     ).json();
     assert.ok(stats.popupImpressions >= 1);
     assert.ok(stats.fbClicks >= 1);
+
+    // Ensure seeded product edit/delete is NOT overwritten on subsequent bootstrap
+    const delSeeded = await fetch(`${baseUrl}/api/admin/catalog/products/p_toy_1`, {
+      method: "DELETE",
+      headers: { Cookie: cookiePair },
+    });
+    assert.equal(delSeeded.status, 200);
+    const bootAfter = await (await fetch(`${baseUrl}/api/public/storefront-bootstrap`)).json();
+    assert.equal(bootAfter.firebaseConnected, true);
+    assert.equal(bootAfter.products.some((p) => p.id === "p_toy_1"), false);
   }
 
   const logoutRes = await fetch(`${baseUrl}/api/admin/auth/logout`, {

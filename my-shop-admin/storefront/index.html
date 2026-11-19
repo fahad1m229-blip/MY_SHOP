@@ -20,6 +20,12 @@
     <span id="announcementText" class="ann-text"></span>
   </div>
 
+  <!-- Firebase / Live Sync Status Notice (only visible if Render Admin SDK env is missing) -->
+  <div id="syncStatusBar" class="sync-notice-bar hidden">
+    <span id="syncStatusText"></span>
+    <button type="button" id="dismissSyncNotice" class="sync-dismiss-btn" aria-label="Dismiss notice">✕</button>
+  </div>
+
   <!-- Responsive Top Header -->
   <header class="store-header glass-panel">
     <div class="container header-inner">
@@ -35,15 +41,19 @@
         <input
           type="search"
           id="globalSearchInput"
-          placeholder="Search mobiles, electronics, fashion, brands..."
+          placeholder="Search mobiles, laptops, ANC audio, fashion..."
           autocomplete="off"
         />
         <button type="button" id="searchSubmitBtn" class="btn-neon sm" aria-label="Search">🔍</button>
+        <div id="searchAutocomplete" class="search-autocomplete hidden"></div>
       </div>
 
       <div class="header-actions">
         <button type="button" id="langToggleBtn" class="pill-btn" title="Switch Language">EN / বাং</button>
         <button type="button" id="themeToggleBtn" class="pill-btn" title="Light / Dark Mode">🌓</button>
+        <button type="button" class="pill-btn desktop-only" data-nav="ai" title="MY AI Helper">
+          ✨ <span data-i18n="aiHelper">MY AI</span>
+        </button>
         <button type="button" class="pill-btn desktop-only" data-nav="wishlist">
           ❤️ <span data-i18n="wishlist">Wishlist</span> (<span id="wishlistBadgeTop">0</span>)
         </button>
@@ -59,8 +69,10 @@
     <!-- Desktop Sub Navigation -->
     <nav class="container desktop-nav desktop-only" id="desktopNav">
       <button type="button" class="subnav-btn active" data-nav="home">🏠 <span data-i18n="home">Home</span></button>
-      <button type="button" class="subnav-btn" data-nav="categories">🗂️ <span data-i18n="categories">Categories</span></button>
+      <button type="button" class="subnav-btn" data-nav="categories">🗂️ <span data-i18n="categories">Explore</span></button>
       <button type="button" class="subnav-btn" data-nav="deals">⚡ <span data-i18n="deals">Deals & Coupons</span></button>
+      <button type="button" class="subnav-btn" data-nav="funzone">🎮 <span data-i18n="funZone">Fun Zone</span></button>
+      <button type="button" class="subnav-btn" data-nav="ai">✨ <span data-i18n="aiHelper">MY AI</span></button>
       <button type="button" class="subnav-btn" data-nav="orders">📦 <span data-i18n="orders">Orders</span></button>
       <button type="button" class="subnav-btn" data-nav="profile">👤 <span data-i18n="profile">Account</span></button>
     </nav>
@@ -82,14 +94,16 @@
             <p class="muted small" id="footerTagline">Shop Smart • Live Happy!</p>
           </div>
         </div>
-        <p class="muted small" id="footerDescription">Next-generation futuristic e-commerce platform synchronized with live catalog & fast delivery.</p>
+        <p class="muted small" id="footerDescription">Next-generation futuristic e-commerce platform synchronized with live catalog, Fun Zone rewards & fast delivery.</p>
+        <div id="footerSocialRow" class="footer-social-row"></div>
       </div>
       <div>
         <h4>Quick Links</h4>
         <div class="footer-links">
           <button type="button" class="link-btn" data-nav="home">Home</button>
-          <button type="button" class="link-btn" data-nav="categories">All Categories</button>
-          <button type="button" class="link-btn" data-nav="cart">Shopping Cart</button>
+          <button type="button" class="link-btn" data-nav="categories">All 16 Categories</button>
+          <button type="button" class="link-btn" data-nav="funzone">MY Fun Zone</button>
+          <button type="button" class="link-btn" data-nav="ai">MY AI Helper</button>
           <button type="button" class="link-btn" data-nav="orders">Track Orders</button>
         </div>
       </div>
@@ -97,13 +111,19 @@
         <h4>Customer Care</h4>
         <p class="muted small" id="footerContactEmail">support@myshop.example</p>
         <p class="muted small" id="footerContactPhone">+880 1700-000000</p>
-        <p class="muted small" id="footerAddress">Dhaka, Bangladesh</p>
+        <p class="muted small" id="footerAddress">Gulshan-2, Dhaka 1212, Bangladesh</p>
+        <button type="button" class="btn-outline sm" style="margin-top:10px" id="reopenWelcomeBtn">
+          ✨ Social Community & Welcome Card
+        </button>
       </div>
     </div>
     <div class="container footer-bottom muted small" id="footerCopyright">
       © MY Shop • Shop Smart • Live Happy!
     </div>
   </footer>
+
+  <!-- Sticky Compare Floating Pill -->
+  <div id="compareBarRoot" class="compare-bar-root hidden"></div>
 
   <!-- Mobile Bottom Navigation Bar (Android / iOS Web Ergonomics) -->
   <nav class="mobile-bottom-nav glass-panel mobile-only" id="mobileBottomNav">
@@ -113,18 +133,18 @@
     <button type="button" class="mob-nav-btn" data-nav="categories">
       <span>🗂️</span><small data-i18n="categories">Explore</small>
     </button>
+    <button type="button" class="mob-nav-btn" data-nav="funzone">
+      <span>🎮</span><small data-i18n="funZone">Fun Zone</small>
+    </button>
     <button type="button" class="mob-nav-btn" data-nav="cart">
       <span>🛒<b id="cartBadgeMob" class="mob-badge hidden">0</b></span><small data-i18n="cart">Cart</small>
-    </button>
-    <button type="button" class="mob-nav-btn" data-nav="wishlist">
-      <span>❤️</span><small data-i18n="wishlist">Wishlist</small>
     </button>
     <button type="button" class="mob-nav-btn" data-nav="profile">
       <span>👤</span><small data-i18n="profile">Account</small>
     </button>
   </nav>
 
-  <!-- Modal Root (Product Details, Customer Auth, Checkout) -->
+  <!-- Modal Root (Product Details, Customer Auth, Checkout, Compare) -->
   <div id="modalOverlay" class="modal-overlay hidden"></div>
 
   <!-- 3D Animated Welcome Popup Root -->

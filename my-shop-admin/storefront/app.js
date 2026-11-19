@@ -5,28 +5,38 @@
 const I18N = {
   EN: {
     home: "Home",
-    categories: "Categories",
+    categories: "Explore",
     deals: "Deals & Coupons",
+    funZone: "Fun Zone",
+    aiHelper: "MY AI",
     orders: "Orders",
     profile: "Account",
     wishlist: "Wishlist",
     cart: "Cart",
     signIn: "Sign In",
-    heroBadge: "NEXT-GEN SMART SHOPPING",
-    heroTitle: "Shop Smart, Live Happy with MY Shop",
-    heroSub: "Explore verified electronics, fashion, lifestyle & exclusive deals — synchronized live with instant checkout and doorstep delivery.",
-    shopNow: "Explore Products",
+    guestBanner: "Guest Browsing Active — Explore & add to cart freely without an account!",
+    heroBadge: "CYBER MEGA DEALS • UP TO 40% OFF",
+    heroTitle: "Future Tech & Lifestyle at MY Shop",
+    heroSub: "Use code MYSHOP10 for 10% off • Automatic Free Delivery on ৳2,500+ • Live inventory & Fun Zone rewards.",
+    shopNow: "Shop Flash Deals",
     viewDeals: "Deals & Coupons",
-    allCategories: "All Categories",
+    allCategories: "All 16 Categories",
+    flashSale: "Flash Sale",
+    todaysDeals: "Today's Deals",
+    trendingNow: "Trending Now",
     featured: "Featured",
     trending: "Trending",
     bestSeller: "Best Sellers",
+    newArrivals: "New Arrivals",
+    recentlyViewed: "Recently Viewed",
     freeDelivery: "Free Delivery",
+    popularBrands: "Popular Brands",
+    customerReviews: "Verified Customer Reviews",
     addToCart: "Add to Cart",
     outOfStock: "Out of Stock",
     buyNow: "Buy Now",
     emptyCatalogTitle: "No published products match right now",
-    emptyCatalogDesc: "Products created and published in MY Shop Admin appear here automatically in real time.",
+    emptyCatalogDesc: "Try clearing your search filter or publish products from MY Shop Admin.",
     emptyCartTitle: "Your shopping cart is empty",
     emptyCartDesc: "Browse products as a guest or sign in — your cart items are always preserved.",
     checkoutTitle: "Secure Checkout",
@@ -36,28 +46,38 @@ const I18N = {
   },
   BN: {
     home: "হোম",
-    categories: "ক্যাটাগরি",
+    categories: "সব দেখুন",
     deals: "অফার ও কুপন",
+    funZone: "ফান জোন",
+    aiHelper: "MY AI",
     orders: "অর্ডার",
     profile: "অ্যাকাউন্ট",
     wishlist: "উইশলিস্ট",
     cart: "কার্ট",
     signIn: "সাইন ইন",
-    heroBadge: "নেক্সট-জেন স্মার্ট শপিং",
+    guestBanner: "গেস্ট ব্রাউজিং চালু — লগইন ছাড়াই সব প্রোডাক্ট দেখুন ও কার্টে যোগ করুন!",
+    heroBadge: "সাইবার মেগা ডিল • ৪০% পর্যন্ত ছাড়",
     heroTitle: "MY Shop-এ স্মার্ট শপিং, হ্যাপি লাইফ",
-    heroSub: "লাইভ ক্যাটালগ থেকে সেরা মোবাইল, ইলেকট্রনিক্স, ফ্যাশন ও ফ্ল্যাশ ডিল কিনুন সহজে এবং দ্রুত ডেলিভারিতে।",
-    shopNow: "সব প্রোডাক্ট দেখুন",
+    heroSub: "MYSHOP10 কুপনে ১০% ছাড় • ৳২,৫০০+ অর্ডারে ফ্রি ডেলিভারি • লাইভ স্টক ও ফান জোন রিওয়ার্ড!",
+    shopNow: "ফ্ল্যাশ ডিল দেখুন",
     viewDeals: "অফার ও কুপন",
-    allCategories: "সব ক্যাটাগরি",
+    allCategories: "সব ১৬টি ক্যাটাগরি",
+    flashSale: "ফ্ল্যাশ সেল",
+    todaysDeals: "আজকের সেরা অফার",
+    trendingNow: "ট্রেন্ডিং পণ্য",
     featured: "ফিচার্ড",
     trending: "ট্রেন্ডিং",
     bestSeller: "বেস্ট সেলার",
+    newArrivals: "নতুন কালেকশন",
+    recentlyViewed: "সম্প্রতি দেখেছেন",
     freeDelivery: "ফ্রি ডেলিভারি",
+    popularBrands: "জনপ্রিয় ব্র্যান্ড",
+    customerReviews: "গ্রাহকদের রিভিউ",
     addToCart: "কার্টে যোগ করুন",
     outOfStock: "স্টক শেষ",
     buyNow: "এখনই কিনুন",
     emptyCatalogTitle: "এই মুহূর্তে কোনো প্রোডাক্ট পাওয়া যায়নি",
-    emptyCatalogDesc: "অ্যাডমিন প্যানেল থেকে নতুন প্রোডাক্ট পাবলিশ করা হলে সাথে সাথে এখানে দেখা যাবে।",
+    emptyCatalogDesc: "ফিল্টার রিসেট করুন অথবা অ্যাডমিন প্যানেল থেকে নতুন প্রোডাক্ট পাবলিশ করুন।",
     emptyCartTitle: "আপনার কার্ট এখন খালি",
     emptyCartDesc: "গেস্ট হিসেবেই পণ্য কার্টে যোগ করতে পারবেন—সাইন ইন করলেও কার্ট হারাবেনা।",
     checkoutTitle: "নিরাপদ চেকআউট",
@@ -67,29 +87,154 @@ const I18N = {
   },
 };
 
+const CATEGORY_VISUALS = {
+  MOBILES: { emoji: "📱", bg: ["#8B5CF6", "#00D4FF"], badge: "5G & AI" },
+  COMPUTERS: { emoji: "💻", bg: ["#3B82F6", "#22D3EE"], badge: "PRO" },
+  ELECTRONICS: { emoji: "🎧", bg: ["#EC4899", "#8B5CF6"], badge: "HOT" },
+  FASHION: { emoji: "🧥", bg: ["#F43F5E", "#FB7185"], badge: "NEW" },
+  SHOES: { emoji: "👟", bg: ["#06B6D4", "#3B82F6"], badge: "DROP" },
+  BEAUTY: { emoji: "✨", bg: ["#D946EF", "#F472B6"], badge: "GLOW" },
+  HOME_LIVING: { emoji: "🛋️", bg: ["#10B981", "#06B6D4"], badge: "COZY" },
+  FURNITURE: { emoji: "🪑", bg: ["#F59E0B", "#EF4444"], badge: "CRAFT" },
+  TOYS: { emoji: "🤖", bg: ["#A855F7", "#F43F5E"], badge: "FUN" },
+  SPORTS: { emoji: "🏋️", bg: ["#14B8A6", "#3B82F6"], badge: "FIT" },
+  BOOKS: { emoji: "📚", bg: ["#6366F1", "#A855F7"], badge: "READ" },
+  GROCERY: { emoji: "🍯", bg: ["#22C55E", "#10B981"], badge: "FRESH" },
+  BABY: { emoji: "🍼", bg: ["#F472B6", "#38BDF8"], badge: "CARE" },
+  ACCESSORIES: { emoji: "⌚", bg: ["#EAB308", "#A855F7"], badge: "STYLE" },
+  GAMING: { emoji: "🎮", bg: ["#FF2E93", "#00D4FF"], badge: "RGB" },
+  AUTOMOTIVE: { emoji: "🚗", bg: ["#64748B", "#38BDF8"], badge: "DRIVE" },
+};
+
+const POPULAR_SEARCHES = [
+  "Phone under ৳20,000",
+  "ANC Headphones",
+  "OLED Laptop",
+  "Mechanical Keyboard",
+  "Running Shoes",
+  "Glow Serum",
+  "Smartwatch",
+];
+
+const FUN_QUIZ = [
+  {
+    q: "What minimum order value unlocks automatic Free Express Delivery on MY Shop?",
+    opts: ["৳500", "৳2,500", "৳15,000", "৳50,000"],
+    ans: 1,
+    exp: "Orders of ৳2,500+ (or any Free Delivery product / FREEDEL code) ship free!",
+  },
+  {
+    q: "Which MY Shop smartphone packs 5G, 120Hz AMOLED & 67W turbo charge under ৳20,000?",
+    opts: ["AeroBook Pro 14", "NovaPulse 5G", "VeloGear Phantom", "ApexTab Ultra"],
+    ans: 1,
+    exp: "NovaPulse 5G (8GB/256GB) is ৳18,990 during Flash Sale!",
+  },
+  {
+    q: "Which code gives instant 10% Off on eligible MY Shop orders ৳1,000+?",
+    opts: ["MYSHOP10", "ZERO0", "NOBONUS", "TEST999"],
+    ans: 0,
+    exp: "MYSHOP10 unlocks 10% instant savings across the store!",
+  },
+];
+
+const FUNNY_CARDS = [
+  {
+    id: "fun_1",
+    title: "Wi-Fi Enabled Pet Rock Pro Max",
+    fakePrice: "৳99,999 (Not for sale!)",
+    joke: "Does absolutely nothing, just like your 47 open browser tabs of things you swore you'd buy next payday.",
+    punch: "Includes 0% battery anxiety because it is literally a stone.",
+  },
+  {
+    id: "fun_2",
+    title: "Anti-Procrastination Alarm Mug",
+    fakePrice: "৳0 (Mental Tax)",
+    joke: "Add to Cart -> Close Tab -> Reopen 3 mins later hoping delivery fee magically vanished.",
+    punch: "Spoiler: Use code FREEDEL or spend ৳2,500+ and delivery IS actually free!",
+  },
+];
+
+const DEFAULT_SOCIAL_SUPPORT = {
+  enabled: true,
+  position: "BOTTOM_RIGHT",
+  buttonSize: "MEDIUM",
+  animationStyle: "FLOAT_GLOW",
+  menuBgHex: "#140F2A",
+  primaryHex: "#8B5CF6",
+  welcomeText: "Connect with MY Shop Support",
+  platforms: [
+    { id: "facebook", name: "Facebook Support", subtitle: "Message us on Facebook", url: "", colorHex: "#1877F2", enabled: true, sortOrder: 1 },
+    { id: "youtube", name: "YouTube Support", subtitle: "Product demos & guides", url: "", colorHex: "#FF0000", enabled: true, sortOrder: 2 },
+    { id: "tiktok", name: "TikTok Support", subtitle: "Trending flash clips", url: "", colorHex: "#FE2C55", enabled: true, sortOrder: 3 },
+    { id: "telegram", name: "Telegram Support", subtitle: "Fast VIP community", url: "", colorHex: "#26A5E4", enabled: true, sortOrder: 4 },
+  ],
+};
+
 const STORAGE_GUEST_CART = "myshop_guest_cart_v1";
 const STORAGE_THEME = "myshop_web_theme_v1";
 const STORAGE_LANG = "myshop_web_lang_v1";
 const STORAGE_POPUP_DISMISS = "myshop_popup_dismiss_v1";
 const STORAGE_VISITED = "myshop_web_visited_v1";
+const STORAGE_RECENT = "myshop_recent_v1";
+const STORAGE_FUN = "myshop_fun_progress_v1";
+
+function loadJsonStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function saveJsonStorage(key, val) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {
+    // Ignore quota errors
+  }
+}
+
+const initialFun = loadJsonStorage(STORAGE_FUN, {
+  points: 150,
+  streak: 1,
+  lastSpinDate: "",
+  lastScratchDate: "",
+  lastStreakDate: "",
+  quizIdx: 0,
+  quizAnswered: null,
+  foundTreasures: [],
+  spinResult: "",
+  scratchRevealed: false,
+});
 
 const state = {
-  view: "home", // home | categories | deals | cart | wishlist | orders | profile
+  view: "home", // home | categories | deals | funzone | ai | cart | wishlist | orders | profile
   lang: localStorage.getItem(STORAGE_LANG) === "BN" ? "BN" : "EN",
   theme: localStorage.getItem(STORAGE_THEME) === "light" ? "light" : "dark",
   loading: true,
+  firebaseConnected: true,
+  syncNoticeDismissed: false,
   siteConfig: {},
   announcement: {},
-  socialSupport: null,
+  socialSupport: DEFAULT_SOCIAL_SUPPORT,
   popups: [],
   products: [],
   categories: [],
   brands: [],
   coupons: [],
   deliveryZones: [],
+  funZone: { spinEnabled: true, scratchEnabled: true, treasureEnabled: true, quizEnabled: true, funnyZoneEnabled: true },
+  aiSettings: {
+    enabled: true,
+    assistantName: "MY AI Shopping Assistant",
+    welcomeMessage: "Hi! Ask me for phone deals under ৳20,000, ANC headphones, gaming gear, or free delivery offers.",
+    suggestedPrompts: ["Phone under ৳20,000", "Best ANC headphones", "Free delivery items", "Show gaming gear"],
+  },
   customer: null,
-  cart: loadGuestCart(),
+  cart: loadJsonStorage(STORAGE_GUEST_CART, []),
   wishlistIds: [],
+  recentlyViewedIds: loadJsonStorage(STORAGE_RECENT, []),
+  compareIds: [],
   orders: [],
   addresses: [],
   notifications: [],
@@ -97,13 +242,18 @@ const state = {
     search: "",
     category: "ALL",
     brand: "",
-    tab: "all", // all | featured | trending | bestSeller | freeDelivery
+    tab: "all", // all | featured | trending | bestSeller | freeDelivery | flashSale
     sort: "newest",
   },
   appliedCoupon: "",
   socialOpen: false,
   popupShownThisSession: false,
-  activeDetailProduct: null,
+  flashSeconds: 5 * 3600 + 42 * 60 + 19,
+  funTab: "spin",
+  spinAngle: 0,
+  spinBusy: false,
+  fun: initialFun,
+  aiMessages: [],
 };
 
 function t(key) {
@@ -129,22 +279,15 @@ function isSafeHttpUrl(raw) {
   }
 }
 
-function loadGuestCart() {
-  try {
-    const raw = localStorage.getItem(STORAGE_GUEST_CART);
-    const parsed = JSON.parse(raw || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function saveGuestCart(items) {
-  try {
-    localStorage.setItem(STORAGE_GUEST_CART, JSON.stringify(items));
-  } catch {
-    // Ignore storage quota errors
-  }
+function formatCountdown(totalSecs) {
+  const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, "0");
+  const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, "0");
+  const secs = String(totalSecs % 60).padStart(2, "0");
+  return `${hrs}:${mins}:${secs}`;
 }
 
 function toast(msg, isError = false) {
@@ -153,7 +296,7 @@ function toast(msg, isError = false) {
   el.textContent = msg;
   el.className = isError ? "toast error" : "toast";
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add("hidden"), 3200);
+  toast._t = setTimeout(() => el.classList.add("hidden"), 3400);
 }
 
 async function api(path, options = {}) {
@@ -176,6 +319,23 @@ function money(amount) {
   return `${sym}${Number(amount || 0).toLocaleString()}`;
 }
 
+function getCategoryMeta(catId) {
+  const upper = String(catId || "ACCESSORIES").toUpperCase();
+  const matched = state.categories.find((c) => String(c.id).toUpperCase() === upper);
+  const vis = CATEGORY_VISUALS[upper] || { emoji: "🛍️", bg: ["#8B5CF6", "#00D4FF"], badge: "DEAL" };
+  return {
+    id: upper,
+    title:
+      state.lang === "BN"
+        ? matched?.titleBn || matched?.titleEn || matched?.name || upper
+        : matched?.titleEn || matched?.name || upper,
+    emoji: matched?.emoji || vis.emoji,
+    accent: matched?.accentHex || vis.bg[0],
+    secondary: matched?.secondaryHex || vis.bg[1],
+    badge: matched?.badgeText || vis.badge,
+  };
+}
+
 function applyThemeAndLang() {
   document.documentElement.setAttribute("data-theme", state.theme);
   localStorage.setItem(STORAGE_THEME, state.theme);
@@ -188,6 +348,29 @@ function applyThemeAndLang() {
   if (langBtn) langBtn.textContent = state.lang === "EN" ? "EN / বাং" : "বাং / EN";
 }
 
+function getSocialSvg(platformId) {
+  switch (String(platformId || "").toLowerCase()) {
+    case "facebook":
+      return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"/></svg>`;
+    case "youtube":
+      return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.58 7.19a2.75 2.75 0 0 0-1.94-1.95C17.93 4.75 12 4.75 12 4.75s-5.93 0-7.64.49A2.75 2.75 0 0 0 2.42 7.19 28.8 28.8 0 0 0 2 12a28.8 28.8 0 0 0 .42 4.81 2.75 2.75 0 0 0 1.94 1.95c1.71.49 7.64.49 7.64.49s5.93 0 7.64-.49a2.75 2.75 0 0 0 1.94-1.95A28.8 28.8 0 0 0 22 12a28.8 28.8 0 0 0-.42-4.81zM10 15.25v-6.5L15.75 12 10 15.25z"/></svg>`;
+    case "tiktok":
+      return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 1 1-2.59-2.59c.27 0 .53.04.77.12V9.79a5.65 5.65 0 0 0-.77-.05 5.71 5.71 0 1 0 5.71 5.71V9.14a7.33 7.33 0 0 0 4.29 1.38V7.43c-.96 0-2.4-.52-3.26-1.61z"/></svg>`;
+    case "telegram":
+      return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.42 3.67 2.83 10.84c-1.27.51-1.26 1.22-.23 1.54l4.77 1.49 11.04-6.97c.52-.32 1-.15.61.2L10.08 15.2l-.35 5.18c.52 0 .75-.24 1.04-.52l2.5-2.43 5.19 3.83c.96.53 1.65.26 1.89-.89l3.41-16.08c.35-1.4-.53-2.04-1.34-1.62z"/></svg>`;
+    default:
+      return "★";
+  }
+}
+
+function renderSocialBadgeIcon(p) {
+  if (isSafeHttpUrl(p.iconUrl)) {
+    return `<span class="social-icon-dot"><img src="${escapeHtml(p.iconUrl)}" alt="${escapeHtml(p.name)}" /></span>`;
+  }
+  const bg = p.id === "tiktok" ? "linear-gradient(135deg,#111827,#FE2C55,#00F2EA)" : escapeHtml(p.colorHex || "#8B5CF6");
+  return `<span class="social-icon-dot" style="background:${bg}">${getSocialSvg(p.id)}</span>`;
+}
+
 function updateHeaderChromes() {
   const cfg = state.siteConfig || {};
   const siteName = cfg.siteName || "MY Shop";
@@ -198,11 +381,32 @@ function updateHeaderChromes() {
   document.getElementById("footerSiteName").textContent = siteName;
   document.getElementById("footerTagline").textContent = tagline;
   document.getElementById("footerDescription").textContent =
-    cfg.description || "Next-generation futuristic e-commerce platform synchronized with live catalog.";
+    cfg.description || "Next-generation futuristic e-commerce platform synchronized with live catalog & Fun Zone rewards.";
   document.getElementById("footerContactEmail").textContent = cfg.contactEmail || "support@myshop.example";
   document.getElementById("footerContactPhone").textContent = cfg.contactPhone || "+880 1700-000000";
-  document.getElementById("footerAddress").textContent = cfg.address || "Dhaka, Bangladesh";
+  document.getElementById("footerAddress").textContent = cfg.address || "Gulshan-2, Dhaka 1212, Bangladesh";
   document.getElementById("footerCopyright").textContent = cfg.footerText || `© ${siteName} • ${tagline}`;
+
+  // Footer Social Pills (Facebook / YouTube / TikTok / Telegram)
+  const footerSocialRow = document.getElementById("footerSocialRow");
+  if (footerSocialRow) {
+    const platforms = ((state.socialSupport || DEFAULT_SOCIAL_SUPPORT).platforms || []).filter((p) => p.enabled !== false);
+    footerSocialRow.innerHTML = platforms
+      .map(
+        (p) => `
+      <button type="button" class="footer-social-pill" data-footer-social="${escapeHtml(p.id)}">
+        ${renderSocialBadgeIcon(p)}
+        <span>${escapeHtml(p.name.replace(" Support", ""))}</span>
+      </button>`
+      )
+      .join("");
+    footerSocialRow.querySelectorAll("[data-footer-social]").forEach((btn) => {
+      btn.onclick = () => {
+        const p = platforms.find((x) => x.id === btn.getAttribute("data-footer-social"));
+        if (p) openSafeSocialLink(p);
+      };
+    });
+  }
 
   // Announcement Bar
   const ann = state.announcement || {};
@@ -219,7 +423,22 @@ function updateHeaderChromes() {
     annBar.classList.add("hidden");
   }
 
-  // Cart & Wishlist & Account badges
+  // Render Firebase connection notice if Render Admin SDK env is not configured
+  const syncBar = document.getElementById("syncStatusBar");
+  const syncText = document.getElementById("syncStatusText");
+  if (syncBar && syncText) {
+    if (!state.firebaseConnected && !state.syncNoticeDismissed) {
+      syncText.textContent =
+        state.lang === "BN"
+          ? "প্রিভিউ মোড চালু: Render-এ FIREBASE_SERVICE_ACCOUNT_JSON/BASE64 যোগ করলে অ্যাডমিন ও ইউজার লাইভ সিঙ্ক হবে।"
+          : "Starter Catalog Mode: Set FIREBASE_SERVICE_ACCOUNT_JSON / BASE64 on Render to sync custom Admin edits & customer accounts live.";
+      syncBar.classList.remove("hidden");
+    } else {
+      syncBar.classList.add("hidden");
+    }
+  }
+
+  // Cart, Wishlist, Account badges
   const cartQty = state.cart.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
   document.getElementById("cartBadgeTop").textContent = cartQty;
   const mobBadge = document.getElementById("cartBadgeMob");
@@ -236,6 +455,21 @@ function updateHeaderChromes() {
       el.classList.toggle("active", target === state.view);
     }
   });
+
+  // Sticky Compare Bar
+  const cmpRoot = document.getElementById("compareBarRoot");
+  if (cmpRoot) {
+    if (state.compareIds.length > 0) {
+      cmpRoot.classList.remove("hidden");
+      cmpRoot.innerHTML = `
+        <span class="small"><strong>${state.compareIds.length}/4</strong> selected</span>
+        <button type="button" class="btn-neon sm" data-action="open-compare">Compare Now</button>
+        <button type="button" class="btn-outline sm" data-action="clear-compare">Clear</button>
+      `;
+    } else {
+      cmpRoot.classList.add("hidden");
+    }
+  }
 }
 
 function getFilteredProducts() {
@@ -258,6 +492,7 @@ function getFilteredProducts() {
   if (tab === "trending") list = list.filter((p) => p.trending);
   if (tab === "bestSeller") list = list.filter((p) => p.bestSeller);
   if (tab === "freeDelivery") list = list.filter((p) => p.freeDelivery);
+  if (tab === "flashSale") list = list.filter((p) => p.flashSale || p.discountPercent >= 20);
 
   if (sort === "price_asc") list.sort((a, b) => a.price - b.price);
   else if (sort === "price_desc") list.sort((a, b) => b.price - a.price);
@@ -265,32 +500,48 @@ function getFilteredProducts() {
   return list;
 }
 
+function renderProductVisual(p, cls = "product-thumb") {
+  const title = state.lang === "BN" && p.nameBn ? p.nameBn : p.name;
+  if (isSafeHttpUrl(p.mainImageUrl)) {
+    return `<img src="${escapeHtml(p.mainImageUrl)}" alt="${escapeHtml(title)}" class="${cls}" loading="lazy" />`;
+  }
+  const meta = getCategoryMeta(p.categoryId);
+  const accent = p.accentHex || meta.accent;
+  const sec = p.secondaryHex || meta.secondary;
+  return `
+    <div class="product-art-fallback" style="background:linear-gradient(135deg, ${escapeHtml(accent)}, ${escapeHtml(sec)})">
+      <div class="art-emoji">${meta.emoji}</div>
+      <span class="art-chip">${escapeHtml(p.brand || "MY Shop")} • ${escapeHtml(meta.badge)}</span>
+    </div>
+  `;
+}
+
 function renderProductCard(p) {
   const title = state.lang === "BN" && p.nameBn ? p.nameBn : p.name;
   const wished = state.wishlistIds.includes(p.id);
+  const compared = state.compareIds.includes(p.id);
   const outOfStock = !p.available || Number(p.stock || 0) <= 0;
-  const imgHtml = isSafeHttpUrl(p.mainImageUrl)
-    ? `<img src="${escapeHtml(p.mainImageUrl)}" alt="${escapeHtml(title)}" class="product-thumb" loading="lazy" />`
-    : `<div class="product-thumb-fallback">🛍️</div>`;
 
   return `
     <article class="product-card" data-product-id="${escapeHtml(p.id)}">
       <div class="product-thumb-wrap" data-action="open-product" data-id="${escapeHtml(p.id)}">
-        ${imgHtml}
+        ${renderProductVisual(p)}
         ${p.discountPercent > 0 ? `<span class="discount-pill">-${p.discountPercent}%</span>` : ""}
+        <button type="button" class="cmp-float-btn ${compared ? "active" : ""}" data-action="toggle-compare" data-id="${escapeHtml(p.id)}" title="Compare">⚖️</button>
         <button type="button" class="wish-float-btn" data-action="toggle-wish" data-id="${escapeHtml(p.id)}" aria-label="Wishlist">
           ${wished ? "❤️" : "🤍"}
         </button>
       </div>
       <div class="product-body">
-        <div class="product-brand">${escapeHtml(p.brand || "MY Shop")} • ${escapeHtml(p.categoryId)}</div>
+        <div class="product-brand">${escapeHtml(p.brand || "MY Shop")} • ${escapeHtml(getCategoryMeta(p.categoryId).title)}</div>
         <h3 class="product-title" data-action="open-product" data-id="${escapeHtml(p.id)}">${escapeHtml(title)}</h3>
+        <div class="rating-line">★ ${Number(p.rating || 4.8).toFixed(1)} <span class="muted">(${p.reviewCount || 0})</span></div>
         <div class="price-row">
           <span class="price-now">${money(p.price)}</span>
           ${p.originalPrice > p.price ? `<span class="price-old">${money(p.originalPrice)}</span>` : ""}
         </div>
         <div class="stock-meta">
-          <span>${outOfStock ? `<span style="color:#fca5a5">${t("outOfStock")}</span>` : `In stock (${p.stock})`}</span>
+          <span>${outOfStock ? `<span style="color:#fca5a5">${t("outOfStock")}</span>` : `Stock: ${p.stock}`}</span>
           <span>${p.freeDelivery ? "🚚 Free" : ""}</span>
         </div>
         <div class="card-actions">
@@ -313,28 +564,43 @@ function renderHomeOrBrowse(mode = "home") {
   const filtered = getFilteredProducts();
   const categories = state.categories.length
     ? state.categories
-    : Array.from(new Set(state.products.map((p) => p.categoryId).filter(Boolean))).map((id) => ({
-        id,
-        name: id,
-      }));
+    : Object.keys(CATEGORY_VISUALS).map((id, i) => ({ id, titleEn: id, orderIndex: i + 1 }));
+
+  const guestStrip = !state.customer && mode === "home"
+    ? `
+    <div class="guest-strip">
+      <span>🧭 ${escapeHtml(t("guestBanner"))}</span>
+      <button type="button" class="link-btn" style="color:var(--electric-blue);font-weight:700" data-action="open-auth">${t("signIn")}</button>
+    </div>`
+    : "";
+
+  const popularRow = mode === "home"
+    ? `
+    <div class="chips-row" style="margin-bottom:14px">
+      ${POPULAR_SEARCHES.map(
+        (q) => `<button type="button" class="chip" data-action="quick-search" data-q="${escapeHtml(q)}">🔥 ${escapeHtml(q)}</button>`
+      ).join("")}
+    </div>`
+    : "";
 
   const heroHtml =
     mode === "home" && !state.filters.search
       ? `
       <section class="hero-banner glass-panel">
         <div>
-          <span class="hero-badge">✨ ${t("heroBadge")}</span>
-          <h1>${t("heroTitle")}</h1>
-          <p>${t("heroSub")}</p>
+          <span class="hero-badge">⚡ ${escapeHtml(t("heroBadge"))}</span>
+          <h1>${escapeHtml(t("heroTitle"))}</h1>
+          <p>${escapeHtml(t("heroSub"))}</p>
           <div class="hero-actions">
             <button type="button" class="btn-neon" onclick="document.getElementById('catalogSection').scrollIntoView({behavior:'smooth'})">
-              ${t("shopNow")}
+              ⚡ ${escapeHtml(t("shopNow"))}
             </button>
-            <button type="button" class="btn-outline" data-nav="deals">${t("viewDeals")}</button>
+            <button type="button" class="btn-outline" data-nav="deals">${escapeHtml(t("viewDeals"))}</button>
+            <button type="button" class="btn-outline" data-nav="funzone">🎮 ${escapeHtml(t("funZone"))}</button>
           </div>
         </div>
         <div>
-          <img src="/welcome-3d.jpg" alt="MY Shop 3D Shopping" class="hero-art" />
+          <img src="/hero-deals.jpg" alt="MY Shop Cyber Deals" class="hero-art" onerror="this.src='/welcome-3d.jpg'" />
         </div>
       </section>
     `
@@ -342,13 +608,13 @@ function renderHomeOrBrowse(mode = "home") {
 
   const banners = Array.isArray(state.siteConfig?.banners) ? state.siteConfig.banners : [];
   const bannerRow =
-    mode === "home" && banners.length
+    mode === "home" && banners.length && !state.filters.search
       ? `
       <div class="chips-row" style="margin-bottom:14px">
         ${banners
           .map(
             (b) => `
-          <div class="panel-card" style="min-width:260px;margin:0;padding:12px">
+          <div class="panel-card" style="min-width:265px;margin:0;padding:12px">
             <strong>${escapeHtml(b.title || "Special Offer")}</strong>
             <p class="small muted">${escapeHtml(b.subtitle || "")}</p>
           </div>`
@@ -357,34 +623,100 @@ function renderHomeOrBrowse(mode = "home") {
       </div>`
       : "";
 
-  const categoryChips = `
+  const categoryCardsHtml = `
     <div class="section-head">
-      <h2>🗂️ ${t("categories")}</h2>
-      ${state.filters.brand ? `<button type="button" class="btn-outline sm" data-action="clear-brand">Clear Brand: ${escapeHtml(state.filters.brand)} ✕</button>` : ""}
+      <h2>🗂️ ${escapeHtml(t("allCategories"))}</h2>
+      ${
+        state.filters.category !== "ALL" || state.filters.brand
+          ? `<button type="button" class="btn-outline sm" data-action="reset-filters">Reset Filters ✕</button>`
+          : `<button type="button" class="link-btn" style="color:var(--electric-blue);font-weight:700" data-nav="categories">See All ${categories.length} →</button>`
+      }
     </div>
-    <div class="chips-row">
-      <button type="button" class="chip ${state.filters.category === "ALL" ? "active" : ""}" data-action="filter-cat" data-cat="ALL">
-        ${t("allCategories")} (${state.products.length})
+    <div class="cat-strip">
+      <button type="button" class="cat-card ${state.filters.category === "ALL" ? "active" : ""}" data-action="filter-cat" data-cat="ALL">
+        <div class="cat-orb" style="background:linear-gradient(135deg,#8B5CF6,#00D4FF)">🌟</div>
+        <span class="cat-title">All (${state.products.length})</span>
       </button>
       ${categories
-        .map(
-          (c) => `
-        <button type="button" class="chip ${state.filters.category === c.id ? "active" : ""}" data-action="filter-cat" data-cat="${escapeHtml(c.id)}">
-          ${escapeHtml(c.name || c.id)}
-        </button>`
-        )
+        .map((c) => {
+          const meta = getCategoryMeta(c.id);
+          return `
+        <button type="button" class="cat-card ${state.filters.category === c.id ? "active" : ""}" data-action="filter-cat" data-cat="${escapeHtml(c.id)}">
+          <span class="cat-badge">${escapeHtml(meta.badge)}</span>
+          <div class="cat-orb" style="background:linear-gradient(135deg,${escapeHtml(meta.accent)},${escapeHtml(meta.secondary)})">${meta.emoji}</div>
+          <span class="cat-title">${escapeHtml(meta.title)}</span>
+        </button>`;
+        })
         .join("")}
     </div>
   `;
 
-  const brandChips = state.brands.length
+  // Flash Sale + Countdown (Shown on unfiltered Home)
+  const flashItems = state.products.filter((p) => p.flashSale || p.discountPercent >= 20).slice(0, 8);
+  const flashSectionHtml =
+    mode === "home" && !state.filters.search && flashItems.length
+      ? `
+      <div class="section-head">
+        <h2>⚡ ${escapeHtml(t("flashSale"))}</h2>
+        <span id="flashCountdownEl" class="countdown-pill">Ends in ${formatCountdown(state.flashSeconds)}</span>
+      </div>
+      <div class="h-scroll-row">${flashItems.map(renderProductCard).join("")}</div>
+    `
+      : "";
+
+  // Fun Zone & MY AI Spotlight Cards
+  const spotlightHtml =
+    mode === "home" && !state.filters.search
+      ? `
+      <div class="spotlight-grid">
+        <div class="spotlight-card" data-nav="funzone">
+          <img src="/fun-zone.jpg" alt="MY Fun Zone" onerror="this.style.display='none'" />
+          <div class="spotlight-overlay">
+            <span class="hero-badge" style="margin:0;width:fit-content">🎡 SPIN • SCRATCH • QUIZ</span>
+            <div>
+              <h3>🎮 MY Fun Zone (${state.fun.points} Pts)</h3>
+              <p class="small" style="color:#cbd5e1;margin-top:4px">Play mini-games & unlock instant checkout coupons like MYSHOP10, SPIN15 & FREEDEL!</p>
+            </div>
+          </div>
+        </div>
+        <div class="spotlight-card" data-nav="ai">
+          <img src="/ai-avatar.jpg" alt="MY AI Assistant" onerror="this.style.display='none'" />
+          <div class="spotlight-overlay">
+            <span class="hero-badge" style="margin:0;width:fit-content">✨ SMART PRODUCT FINDER</span>
+            <div>
+              <h3>🤖 MY AI Shopping Helper</h3>
+              <p class="small" style="color:#cbd5e1;margin-top:4px">Ask for budget phones, gaming setups, free delivery items, or gift ideas from live inventory.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+      : "";
+
+  // Recently Viewed Row
+  const recentItems = state.recentlyViewedIds
+    .map((id) => state.products.find((p) => p.id === id))
+    .filter(Boolean)
+    .slice(0, 6);
+  const recentHtml =
+    mode === "home" && recentItems.length && !state.filters.search
+      ? `
+      <div class="section-head"><h2>🕒 ${escapeHtml(t("recentlyViewed"))}</h2></div>
+      <div class="h-scroll-row">${recentItems.map(renderProductCard).join("")}</div>
+    `
+      : "";
+
+  // Brands Showcase
+  const brandsHtml = state.brands.length
     ? `
-    <div class="chips-row" style="margin-top:8px">
+    <div class="section-head"><h2>🏷️ ${escapeHtml(t("popularBrands"))}</h2></div>
+    <div class="h-scroll-row">
       ${state.brands
         .map(
           (b) => `
-        <button type="button" class="chip ${state.filters.brand === (b.name || b.id) ? "active" : ""}" data-action="filter-brand" data-brand="${escapeHtml(b.name || b.id)}">
-          🏷️ ${escapeHtml(b.name || b.id)}
+        <button type="button" class="brand-card ${state.filters.brand === (b.name || b.id) ? "active" : ""}" data-action="filter-brand" data-brand="${escapeHtml(b.name || b.id)}" style="border-color:${escapeHtml(b.accentHex || "var(--border-glass)")}">
+          <strong style="color:${escapeHtml(b.accentHex || "var(--electric-blue)")}">${escapeHtml(b.name || b.id)}</strong>
+          <div class="small muted" style="margin-top:4px">${escapeHtml(b.tagline || "Official Partner")}</div>
         </button>`
         )
         .join("")}
@@ -395,7 +727,8 @@ function renderHomeOrBrowse(mode = "home") {
     <div class="filter-toolbar" id="catalogSection">
       <div class="chips-row">
         ${[
-          ["all", "All"],
+          ["all", `All (${state.products.length})`],
+          ["flashSale", "⚡ Flash Sale"],
           ["featured", t("featured")],
           ["trending", t("trending")],
           ["bestSeller", t("bestSeller")],
@@ -424,15 +757,33 @@ function renderHomeOrBrowse(mode = "home") {
         <div style="font-size:2.2rem">🛍️</div>
         <h3>${t("emptyCatalogTitle")}</h3>
         <p class="muted small">${t("emptyCatalogDesc")}</p>
-        ${
-          state.filters.search || state.filters.category !== "ALL" || state.filters.brand || state.filters.tab !== "all"
-            ? `<button type="button" class="btn-outline" style="margin-top:12px" data-action="reset-filters">Reset Filters</button>`
-            : ""
-        }
+        <button type="button" class="btn-outline" style="margin-top:12px" data-action="reset-filters">Reset Filters</button>
       </div>`
     : `<div class="product-grid">${filtered.map(renderProductCard).join("")}</div>`;
 
-  return `${heroHtml}${bannerRow}${categoryChips}${brandChips}${toolbar}${catalogBody}`;
+  // Verified Customer Reviews Strip
+  const highlightedReviews = state.products
+    .flatMap((p) => (Array.isArray(p.reviews) ? p.reviews.map((r) => ({ product: p.name, ...r })) : []))
+    .slice(0, 6);
+  const reviewsHtml =
+    mode === "home" && highlightedReviews.length
+      ? `
+      <div class="section-head"><h2>⭐ ${escapeHtml(t("customerReviews"))}</h2></div>
+      <div class="h-scroll-row">
+        ${highlightedReviews
+          .map(
+            (rev) => `
+          <div class="review-card">
+            <div style="color:var(--amber);font-size:.86rem">${"★".repeat(Math.min(5, Number(rev.rating || 5)))} <span style="color:var(--emerald);font-weight:700">✓ Verified</span></div>
+            <p class="small" style="margin:8px 0;line-height:1.45">"${escapeHtml(rev.comment)}"</p>
+            <div class="small muted">${escapeHtml(rev.author)} • ${escapeHtml(rev.product)}</div>
+          </div>`
+          )
+          .join("")}
+      </div>`
+      : "";
+
+  return `${guestStrip}${popularRow}${heroHtml}${bannerRow}${categoryCardsHtml}${flashSectionHtml}${spotlightHtml}${recentHtml}${toolbar}${catalogBody}${brandsHtml}${reviewsHtml}`;
 }
 
 function renderDealsView() {
@@ -456,7 +807,7 @@ function renderDealsView() {
           </div>`
               )
               .join("")
-          : `<div class="panel-card"><p class="muted small">Active coupons created in Admin Panel will appear here.</p></div>`
+          : `<div class="panel-card"><p class="muted small">Active coupons will appear here.</p></div>`
       }
     </div>
     <div class="section-head"><h2>🔥 Hot Offers</h2></div>
@@ -467,6 +818,280 @@ function renderDealsView() {
     }
   `;
 }
+
+// ======================== MY FUN ZONE ========================
+
+function persistFunState() {
+  saveJsonStorage(STORAGE_FUN, state.fun);
+}
+
+function renderFunZoneView() {
+  const tabs = [
+    ["spin", "🎡 Spin & Win"],
+    ["scratch", "🎫 Scratch Card"],
+    ["streak", "🔥 7-Day Streak"],
+    ["quiz", "🧠 Trivia Quiz"],
+    ["funny", "😂 Funny Zone"],
+    ["treasure", "💎 Treasure Hunt"],
+  ];
+
+  let bodyHtml = "";
+  const today = todayKey();
+  const canSpin = state.fun.lastSpinDate !== today;
+  const canScratch = state.fun.lastScratchDate !== today && !state.fun.scratchRevealed;
+  const canStreak = state.fun.lastStreakDate !== today;
+
+  if (state.funTab === "spin") {
+    bodyHtml = `
+      <div class="panel-card" style="text-align:center">
+        <h3>Spin & Win Daily Wheel</h3>
+        <p class="small muted" style="margin-top:4px">1 Free Spin daily • Win instant coupons (SPIN15, MYSHOP10, FREEDEL) & MY Points!</p>
+        <div class="wheel-wrap">
+          <div class="wheel-pointer">▼</div>
+          <div class="spin-wheel" id="funWheelEl" style="transform:rotate(${state.spinAngle}deg)">
+            <div class="wheel-hub">MY SHOP</div>
+          </div>
+        </div>
+        ${state.fun.spinResult ? `<p style="color:var(--emerald);font-weight:800;margin-bottom:10px">🎉 ${escapeHtml(state.fun.spinResult)}</p>` : ""}
+        <button type="button" class="btn-neon" id="spinWheelBtn" ${!canSpin || state.spinBusy ? "disabled" : ""}>
+          ${state.spinBusy ? "Spinning…" : canSpin ? "🎡 Spin Free Wheel" : "Daily Spin Used (Return Tomorrow)"}
+        </button>
+      </div>
+    `;
+  } else if (state.funTab === "scratch") {
+    bodyHtml = `
+      <div class="panel-card">
+        <h3>Scratch & Reveal Daily Reward</h3>
+        <p class="small muted" style="margin:4px 0 12px">Tap the metallic card below to scratch and unlock code <strong>SCRATCH100</strong> (৳100 off ৳800+).</p>
+        <div class="scratch-box ${canScratch ? "" : "revealed"}" id="scratchCardBox">
+          ${
+            canScratch
+              ? `<h3>✨ TAP TO SCRATCH & REVEAL ✨</h3><p class="small" style="margin-top:6px;opacity:.85">Instant ৳100 Coupon + 60 MY Points inside</p>`
+              : `<h3>🎁 Won: SCRATCH100 (৳100 OFF) + 60 MY Pts!</h3><button type="button" class="btn-neon sm" style="margin-top:10px" data-action="apply-coupon-quick" data-code="SCRATCH100">Apply SCRATCH100 in Cart</button>`
+          }
+        </div>
+      </div>
+    `;
+  } else if (state.funTab === "streak") {
+    bodyHtml = `
+      <div class="panel-card">
+        <h3>🔥 7-Day Shopping Streak</h3>
+        <p class="small muted" style="margin:4px 0 12px">Check in daily to multiply your MY Loyalty Points!</p>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px">
+          ${[1, 2, 3, 4, 5, 6, 7]
+            .map(
+              (d) => `
+            <div style="text-align:center;padding:10px 4px;border-radius:12px;background:${d <= state.fun.streak ? "rgba(16,185,129,.25)" : "rgba(255,255,255,.06)"};border:1px solid ${d <= state.fun.streak ? "var(--emerald)" : "var(--border-glass)"}">
+              <strong>D${d}</strong>
+              <div class="small muted">+${d * 25}</div>
+            </div>`
+            )
+            .join("")}
+        </div>
+        <button type="button" class="btn-neon" id="claimStreakBtn" ${!canStreak ? "disabled" : ""}>
+          ${canStreak ? "🔥 Claim Today's Streak Bonus" : "✓ Today's Streak Claimed"}
+        </button>
+      </div>
+    `;
+  } else if (state.funTab === "quiz") {
+    const q = FUN_QUIZ[state.fun.quizIdx % FUN_QUIZ.length];
+    bodyHtml = `
+      <div class="panel-card">
+        <h3>🧠 MY Shop Trivia Quiz (${(state.fun.quizIdx % FUN_QUIZ.length) + 1}/${FUN_QUIZ.length})</h3>
+        <p style="margin:10px 0;font-weight:700">${escapeHtml(q.q)}</p>
+        <div class="form-stack">
+          ${q.opts
+            .map((opt, idx) => {
+              const chosen = state.fun.quizAnswered === idx;
+              const correct = idx === q.ans;
+              const style =
+                state.fun.quizAnswered === null
+                  ? ""
+                  : correct
+                  ? "border-color:var(--emerald);background:rgba(16,185,129,.22)"
+                  : chosen
+                  ? "border-color:var(--danger);background:rgba(239,68,68,.2)"
+                  : "";
+              return `<button type="button" class="btn-outline" style="text-align:left;${style}" data-quiz-opt="${idx}" ${state.fun.quizAnswered !== null ? "disabled" : ""}>${escapeHtml(opt)}</button>`;
+            })
+            .join("")}
+        </div>
+        ${
+          state.fun.quizAnswered !== null
+            ? `<p class="small" style="color:var(--electric-blue);margin-top:10px">${escapeHtml(q.exp)}</p>
+               <button type="button" class="btn-neon sm" style="margin-top:10px" id="nextQuizBtn">Next Question →</button>`
+            : ""
+        }
+      </div>
+    `;
+  } else if (state.funTab === "funny") {
+    bodyHtml = FUNNY_CARDS.map(
+      (c) => `
+      <div class="panel-card">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+          <h3>${escapeHtml(c.title)}</h3>
+          <span class="hero-badge" style="margin:0">${escapeHtml(c.fakePrice)}</span>
+        </div>
+        <p style="margin:8px 0">${escapeHtml(c.joke)}</p>
+        <p class="small" style="color:var(--electric-blue)">${escapeHtml(c.punch)}</p>
+      </div>`
+    ).join("");
+  } else {
+    const claimedVault = state.fun.foundTreasures.includes("vault_web");
+    bodyHtml = `
+      <div class="panel-card">
+        <h3>💎 Hidden Treasure Hunt (${state.fun.foundTreasures.length}/2 Found)</h3>
+        <p class="small muted" style="margin:6px 0 12px">Open the Cyber Vault below to claim real coupon code <strong>HUNT250</strong> (৳250 off ৳2,000+) & +100 MY Points!</p>
+        <button type="button" class="btn-neon" id="claimVaultBtn" ${claimedVault ? "disabled" : ""}>
+          ${claimedVault ? "✓ Vault Claimed (Code: HUNT250)" : "🗝️ Unlock Cyber Vault Chest"}
+        </button>
+        ${
+          claimedVault
+            ? `<button type="button" class="btn-outline sm" style="margin-left:8px" data-action="apply-coupon-quick" data-code="HUNT250">Use HUNT250</button>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  return `
+    <div class="spotlight-card" style="height:150px;margin-bottom:14px">
+      <img src="/fun-zone.jpg" alt="MY Fun Zone" onerror="this.style.display='none'" />
+      <div class="spotlight-overlay">
+        <span class="hero-badge" style="margin:0;width:fit-content">🏆 ${state.fun.points} MY POINTS</span>
+        <div>
+          <h2>🎮 MY Fun Zone Arcade</h2>
+          <p class="small" style="color:#e2e8f0">Play, laugh, spin & earn real discount coupons for your next order!</p>
+        </div>
+      </div>
+    </div>
+    <div class="chips-row" style="margin-bottom:14px">
+      ${tabs.map(([k, lbl]) => `<button type="button" class="chip ${state.funTab === k ? "active" : ""}" data-fun-tab="${k}">${lbl}</button>`).join("")}
+    </div>
+    ${bodyHtml}
+  `;
+}
+
+// ======================== MY AI SHOPPING ASSISTANT ========================
+
+function computeAiResponse(promptText) {
+  const q = promptText.toLowerCase();
+  let matches = [...state.products];
+
+  const budgetMatch = q.match(/under\s*৳?\s*([\d,]+)/i) || q.match(/below\s*৳?\s*([\d,]+)/i);
+  const maxPrice = budgetMatch ? Number(budgetMatch[1].replace(/,/g, "")) : null;
+  if (maxPrice) matches = matches.filter((p) => p.price <= maxPrice);
+
+  if (q.includes("free")) matches = matches.filter((p) => p.freeDelivery);
+
+  const keywords = q
+    .replace(/under\s*৳?\s*[\d,]+/gi, "")
+    .split(/[^a-z0-9]+/i)
+    .filter((w) => w.length >= 3 && !["find", "show", "good", "best", "need", "want", "with", "under", "items", "the", "for"].includes(w));
+
+  if (keywords.length > 0) {
+    const scored = matches
+      .map((p) => {
+        const hay = `${p.name} ${p.brand} ${p.categoryId} ${p.description}`.toLowerCase();
+        const score = keywords.reduce((s, kw) => s + (hay.includes(kw) ? 1 : 0), 0);
+        return { p, score };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score || b.p.rating - a.p.rating)
+      .map((x) => x.p);
+    if (scored.length > 0) matches = scored;
+  }
+
+  if (q.includes("coupon") || q.includes("discount") || q.includes("promo")) {
+    return {
+      text: "Here are our live promo codes you can apply right in Cart: MYSHOP10 (10% off ৳1,000+), FLASH200 (৳200 cashback ৳2,500+), FREEDEL (Free Express Delivery).",
+      productIds: matches.slice(0, 3).map((p) => p.id),
+    };
+  }
+
+  const top = matches.slice(0, 4);
+  if (top.length === 0) {
+    return {
+      text: "I couldn't find an exact catalog match for that filter, but you can browse all 16 categories on the Home & Explore tabs or ask me for another budget!",
+      productIds: [],
+    };
+  }
+  return {
+    text: `Here are the top ${top.length} verified in-stock MY Shop picks matching "${promptText}":`,
+    productIds: top.map((p) => p.id),
+  };
+}
+
+function renderAiAssistantView() {
+  if (state.aiMessages.length === 0) {
+    state.aiMessages.push({
+      role: "bot",
+      text: state.aiSettings?.welcomeMessage || "Hi! Ask me for phone deals under ৳20,000, ANC headphones, gaming gear, or free delivery offers.",
+      productIds: state.products.filter((p) => p.flashSale).slice(0, 2).map((p) => p.id),
+    });
+  }
+  const prompts = state.aiSettings?.suggestedPrompts?.length
+    ? state.aiSettings.suggestedPrompts
+    : ["Phone under ৳20,000", "Best ANC headphones", "Free delivery items", "Active coupons"];
+
+  return `
+    <div class="spotlight-card" style="height:145px;margin-bottom:14px">
+      <img src="/ai-avatar.jpg" alt="MY AI Assistant" onerror="this.style.display='none'" />
+      <div class="spotlight-overlay">
+        <span class="hero-badge" style="margin:0;width:fit-content">🤖 LIVE CATALOG FINDER</span>
+        <div>
+          <h2>✨ ${escapeHtml(state.aiSettings?.assistantName || "MY AI Shopping Assistant")}</h2>
+          <p class="small" style="color:#e2e8f0">Instant price-filtered recommendations & coupon advice from verified MY Shop stock.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="chips-row" style="margin-bottom:12px">
+      ${prompts.map((p) => `<button type="button" class="chip" data-ai-prompt="${escapeHtml(p)}">💬 ${escapeHtml(p)}</button>`).join("")}
+    </div>
+
+    <div class="ai-chat-card">
+      <div class="ai-messages" id="aiMessagesBox">
+        ${state.aiMessages
+          .map((m) => {
+            const cards = (m.productIds || [])
+              .map((pid) => state.products.find((x) => x.id === pid))
+              .filter(Boolean);
+            return `
+            <div class="ai-msg ${m.role}">
+              <div>${escapeHtml(m.text)}</div>
+              ${
+                cards.length
+                  ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                      ${cards
+                        .map(
+                          (p) => `
+                        <div style="background:rgba(0,0,0,.35);padding:8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.16);min-width:170px">
+                          <strong class="small">${escapeHtml(p.name)}</strong>
+                          <div class="small" style="color:var(--emerald);font-weight:700">${money(p.price)}</div>
+                          <div style="display:flex;gap:6px;margin-top:6px">
+                            <button type="button" class="btn-neon sm" data-action="add-cart" data-id="${escapeHtml(p.id)}">+ Cart</button>
+                            <button type="button" class="btn-outline sm" data-action="open-product" data-id="${escapeHtml(p.id)}">View</button>
+                          </div>
+                        </div>`
+                        )
+                        .join("")}
+                    </div>`
+                  : ""
+              }
+            </div>`;
+          })
+          .join("")}
+      </div>
+      <form id="aiChatForm" style="display:flex;gap:8px">
+        <input type="text" id="aiPromptInput" class="glass-input" style="flex:1" placeholder="Ask MY AI (e.g. Phone under ৳20,000, gaming mouse...)" required />
+        <button type="submit" class="btn-neon">Ask ✨</button>
+      </form>
+    </div>
+  `;
+}
+
+// ======================== CART, WISHLIST, ORDERS, PROFILE ========================
 
 function calculateCartTotals() {
   let subtotal = 0;
@@ -522,7 +1147,7 @@ function renderCartView() {
             const unitPrice = prod ? prod.price : Number(item.unitPrice || 0);
             const img = isSafeHttpUrl(prod?.mainImageUrl || item.mainImageUrl)
               ? `<img src="${escapeHtml(prod?.mainImageUrl || item.mainImageUrl)}" alt="" />`
-              : `<div style="width:64px;height:64px;border-radius:12px;background:rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center">🛍️</div>`;
+              : `<div style="width:64px;height:64px;border-radius:12px;background:rgba(139,92,246,.24);display:flex;align-items:center;justify-content:center;font-size:1.5rem">${getCategoryMeta(prod?.categoryId).emoji}</div>`;
 
             return `
               <div class="cart-row">
@@ -727,6 +1352,8 @@ function render() {
 
   if (state.view === "categories") main.innerHTML = renderHomeOrBrowse("categories");
   else if (state.view === "deals") main.innerHTML = renderDealsView();
+  else if (state.view === "funzone") main.innerHTML = renderFunZoneView();
+  else if (state.view === "ai") main.innerHTML = renderAiAssistantView();
   else if (state.view === "cart") main.innerHTML = renderCartView();
   else if (state.view === "wishlist") main.innerHTML = renderWishlistView();
   else if (state.view === "orders") main.innerHTML = renderOrdersView();
@@ -746,6 +1373,130 @@ function bindDynamicForms() {
     };
   }
 
+  // Fun Zone bindings
+  document.querySelectorAll("[data-fun-tab]").forEach((btn) => {
+    btn.onclick = () => {
+      state.funTab = btn.getAttribute("data-fun-tab");
+      render();
+    };
+  });
+  const spinBtn = document.getElementById("spinWheelBtn");
+  if (spinBtn) {
+    spinBtn.onclick = () => {
+      if (state.spinBusy || state.fun.lastSpinDate === todayKey()) return;
+      state.spinBusy = true;
+      const prizes = [
+        { label: "15% OFF Coupon (Code: SPIN15) + 50 Pts", pts: 50, code: "SPIN15" },
+        { label: "100 Bonus MY Points", pts: 100, code: "" },
+        { label: "Free Express Delivery (Code: FREEDEL)", pts: 30, code: "FREEDEL" },
+        { label: "10% Welcome Code (Code: MYSHOP10)", pts: 40, code: "MYSHOP10" },
+      ];
+      const pick = prizes[Math.floor(Math.random() * prizes.length)];
+      state.spinAngle += 1440 + Math.floor(Math.random() * 360);
+      const wheelEl = document.getElementById("funWheelEl");
+      if (wheelEl) wheelEl.style.transform = `rotate(${state.spinAngle}deg)`;
+      spinBtn.disabled = true;
+      spinBtn.textContent = "Spinning…";
+      setTimeout(() => {
+        state.spinBusy = false;
+        state.fun.lastSpinDate = todayKey();
+        state.fun.points += pick.pts;
+        state.fun.spinResult = pick.label;
+        if (pick.code) state.appliedCoupon = pick.code;
+        persistFunState();
+        toast(`Won: ${pick.label}!`);
+        render();
+      }, 2450);
+    };
+  }
+  const scratchBox = document.getElementById("scratchCardBox");
+  if (scratchBox) {
+    scratchBox.onclick = () => {
+      if (state.fun.lastScratchDate === todayKey() || state.fun.scratchRevealed) return;
+      state.fun.lastScratchDate = todayKey();
+      state.fun.scratchRevealed = true;
+      state.fun.points += 60;
+      state.appliedCoupon = "SCRATCH100";
+      persistFunState();
+      toast("Unlocked SCRATCH100 + 60 MY Pts!");
+      render();
+    };
+  }
+  const streakBtn = document.getElementById("claimStreakBtn");
+  if (streakBtn) {
+    streakBtn.onclick = () => {
+      if (state.fun.lastStreakDate === todayKey()) return;
+      state.fun.lastStreakDate = todayKey();
+      state.fun.streak = (state.fun.streak % 7) + 1;
+      const bonus = state.fun.streak * 25;
+      state.fun.points += bonus;
+      persistFunState();
+      toast(`Day ${state.fun.streak} Streak Claimed (+${bonus} MY Pts)!`);
+      render();
+    };
+  }
+  document.querySelectorAll("[data-quiz-opt]").forEach((btn) => {
+    btn.onclick = () => {
+      const idx = Number(btn.getAttribute("data-quiz-opt"));
+      const q = FUN_QUIZ[state.fun.quizIdx % FUN_QUIZ.length];
+      state.fun.quizAnswered = idx;
+      if (idx === q.ans) {
+        state.fun.points += 35;
+        toast("Correct! +35 MY Pts!");
+      }
+      persistFunState();
+      render();
+    };
+  });
+  const nextQ = document.getElementById("nextQuizBtn");
+  if (nextQ) {
+    nextQ.onclick = () => {
+      state.fun.quizIdx = (state.fun.quizIdx + 1) % FUN_QUIZ.length;
+      state.fun.quizAnswered = null;
+      persistFunState();
+      render();
+    };
+  }
+  const vaultBtn = document.getElementById("claimVaultBtn");
+  if (vaultBtn) {
+    vaultBtn.onclick = () => {
+      if (!state.fun.foundTreasures.includes("vault_web")) {
+        state.fun.foundTreasures.push("vault_web");
+        state.fun.points += 100;
+        state.appliedCoupon = "HUNT250";
+        persistFunState();
+        toast("Treasure Unlocked! Code HUNT250 + 100 MY Pts!");
+        render();
+      }
+    };
+  }
+
+  // AI Assistant bindings
+  document.querySelectorAll("[data-ai-prompt]").forEach((btn) => {
+    btn.onclick = () => {
+      const prompt = btn.getAttribute("data-ai-prompt");
+      if (!prompt) return;
+      state.aiMessages.push({ role: "user", text: prompt });
+      const ans = computeAiResponse(prompt);
+      state.aiMessages.push({ role: "bot", text: ans.text, productIds: ans.productIds });
+      render();
+    };
+  });
+  const aiForm = document.getElementById("aiChatForm");
+  if (aiForm) {
+    aiForm.onsubmit = (e) => {
+      e.preventDefault();
+      const input = document.getElementById("aiPromptInput");
+      const prompt = input?.value.trim();
+      if (!prompt) return;
+      state.aiMessages.push({ role: "user", text: prompt });
+      const ans = computeAiResponse(prompt);
+      state.aiMessages.push({ role: "bot", text: ans.text, productIds: ans.productIds });
+      render();
+    };
+  }
+
+  // Profile & Address forms
   const profForm = document.getElementById("profileUpdateForm");
   if (profForm) {
     profForm.onsubmit = async (e) => {
@@ -793,7 +1544,7 @@ function bindDynamicForms() {
   }
 }
 
-// ======================== MODALS (Product Detail, Auth, Checkout) ========================
+// ======================== MODALS (Product Detail, Compare, Auth, Checkout) ========================
 
 function closeModal() {
   document.getElementById("modalOverlay").classList.add("hidden");
@@ -803,15 +1554,26 @@ function closeModal() {
 function openProductModal(productId) {
   const p = state.products.find((x) => x.id === productId);
   if (!p) return;
+
+  // Record Recently Viewed
+  state.recentlyViewedIds = [p.id, ...state.recentlyViewedIds.filter((id) => id !== p.id)].slice(0, 10);
+  saveJsonStorage(STORAGE_RECENT, state.recentlyViewedIds);
+
   const images = [p.mainImageUrl, ...(p.imageUrls || [])].filter((u, idx, arr) => isSafeHttpUrl(u) && arr.indexOf(u) === idx);
   const title = state.lang === "BN" && p.nameBn ? p.nameBn : p.name;
   const outOfStock = !p.available || Number(p.stock || 0) <= 0;
+  const specsHtml =
+    Array.isArray(p.specs) && p.specs.length
+      ? `<div class="panel-card" style="padding:10px;margin:6px 0">
+          ${p.specs.map((s) => `<div class="summary-line" style="margin:4px 0;font-size:.82rem"><span class="muted">${escapeHtml(s.label)}</span><strong>${escapeHtml(s.value)}</strong></div>`).join("")}
+         </div>`
+      : "";
 
   const modal = document.getElementById("modalOverlay");
   modal.innerHTML = `
     <div class="modal-card">
       <div class="modal-head">
-        <strong>${escapeHtml(p.brand || "MY Shop")} • ${escapeHtml(p.categoryId)}</strong>
+        <strong>${escapeHtml(p.brand || "MY Shop")} • ${escapeHtml(getCategoryMeta(p.categoryId).title)}</strong>
         <button type="button" class="close-circle" data-action="close-modal" aria-label="Close">✕</button>
       </div>
       <div class="detail-grid">
@@ -819,7 +1581,7 @@ function openProductModal(productId) {
           ${
             images.length
               ? `<img id="detailMainImg" src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" class="detail-main-img" />`
-              : `<div class="detail-main-img" style="display:flex;align-items:center;justify-content:center;font-size:3.5rem;background:rgba(139,92,246,.2)">🛍️</div>`
+              : `<div class="detail-main-img" style="overflow:hidden">${renderProductVisual(p, "detail-main-img")}</div>`
           }
           ${
             images.length > 1
@@ -831,11 +1593,13 @@ function openProductModal(productId) {
                   .join("")}</div>`
               : ""
           }
+          ${specsHtml}
         </div>
         <div class="form-stack">
           <h2>${escapeHtml(title)}</h2>
+          <div class="rating-line">★ ${Number(p.rating || 4.8).toFixed(1)} (${p.reviewCount || 0} reviews) • ${p.freeDelivery ? "🚚 Free Delivery" : "Fast Delivery"}</div>
           <div class="price-row">
-            <span class="price-now" style="font-size:1.4rem">${money(p.price)}</span>
+            <span class="price-now" style="font-size:1.45rem">${money(p.price)}</span>
             ${p.originalPrice > p.price ? `<span class="price-old">${money(p.originalPrice)}</span>` : ""}
             ${p.discountPercent > 0 ? `<span class="discount-pill" style="position:static">-${p.discountPercent}%</span>` : ""}
           </div>
@@ -880,6 +1644,39 @@ function openProductModal(productId) {
     closeModal();
     startCheckoutFlow();
   };
+}
+
+function openCompareModal() {
+  const items = state.compareIds.map((id) => state.products.find((p) => p.id === id)).filter(Boolean);
+  if (items.length === 0) return;
+  const modal = document.getElementById("modalOverlay");
+  modal.innerHTML = `
+    <div class="modal-card">
+      <div class="modal-head">
+        <strong>⚖️ Side-by-Side Comparison (${items.length})</strong>
+        <button type="button" class="close-circle" data-action="close-modal">✕</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:.86rem">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border-glass)">Attribute</th>
+              ${items.map((p) => `<th style="text-align:left;padding:8px;border-bottom:1px solid var(--border-glass)">${escapeHtml(p.name)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:8px" class="muted">Brand</td>${items.map((p) => `<td style="padding:8px">${escapeHtml(p.brand)}</td>`).join("")}</tr>
+            <tr><td style="padding:8px" class="muted">Price</td>${items.map((p) => `<td style="padding:8px;color:var(--emerald);font-weight:700">${money(p.price)}</td>`).join("")}</tr>
+            <tr><td style="padding:8px" class="muted">Discount</td>${items.map((p) => `<td style="padding:8px">${p.discountPercent}%</td>`).join("")}</tr>
+            <tr><td style="padding:8px" class="muted">Rating</td>${items.map((p) => `<td style="padding:8px">★ ${p.rating} (${p.reviewCount})</td>`).join("")}</tr>
+            <tr><td style="padding:8px" class="muted">Delivery</td>${items.map((p) => `<td style="padding:8px">${p.freeDelivery ? "Free Express" : "Standard ৳80"}</td>`).join("")}</tr>
+            <tr><td style="padding:8px" class="muted">Stock</td>${items.map((p) => `<td style="padding:8px">${p.stock} units</td>`).join("")}</tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  modal.classList.remove("hidden");
 }
 
 function openAuthModal(defaultTab = "login", afterAuthCallback = null) {
@@ -950,7 +1747,7 @@ function openAuthModal(defaultTab = "login", afterAuthCallback = null) {
         state.wishlistIds = Array.isArray(data.wishlistIds) ? data.wishlistIds : [];
         state.addresses = Array.isArray(data.addresses) ? data.addresses : [];
         state.notifications = Array.isArray(data.notifications) ? data.notifications : [];
-        saveGuestCart([]);
+        saveJsonStorage(STORAGE_GUEST_CART, []);
         closeModal();
         toast(`Welcome, ${state.customer.displayName}!`);
         await refreshCustomerOrders();
@@ -1023,11 +1820,11 @@ function openCheckoutModal() {
       });
       state.cart = [];
       state.appliedCoupon = "";
-      saveGuestCart([]);
+      saveJsonStorage(STORAGE_GUEST_CART, []);
       closeModal();
       toast(`Order ${order.orderNumber} placed successfully!`);
       await refreshCustomerOrders();
-      await loadBootstrap();
+      await loadBootstrap(true);
       state.view = "orders";
       render();
     } catch (err) {
@@ -1038,11 +1835,11 @@ function openCheckoutModal() {
   };
 }
 
-// ======================== CART / WISHLIST ACTIONS ========================
+// ======================== CART / WISHLIST / COMPARE ========================
 
 async function syncCartToServer() {
   if (!state.customer) {
-    saveGuestCart(state.cart);
+    saveJsonStorage(STORAGE_GUEST_CART, state.cart);
     return;
   }
   try {
@@ -1052,7 +1849,7 @@ async function syncCartToServer() {
     });
     if (Array.isArray(res.items)) state.cart = res.items;
   } catch {
-    saveGuestCart(state.cart);
+    saveJsonStorage(STORAGE_GUEST_CART, state.cart);
   }
 }
 
@@ -1131,20 +1928,16 @@ function trackAnalytics(event) {
   }).catch(() => {});
 }
 
-function renderSocialBadgeIcon(p) {
-  if (isSafeHttpUrl(p.iconUrl)) {
-    return `<span class="social-icon-dot"><img src="${escapeHtml(p.iconUrl)}" alt="${escapeHtml(p.name)}" /></span>`;
-  }
-  const letters = { facebook: "f", youtube: "▶", tiktok: "♪", telegram: "✈" };
-  const bg = p.id === "tiktok" ? "linear-gradient(135deg,#111827,#FE2C55,#00F2EA)" : escapeHtml(p.colorHex || "#8B5CF6");
-  return `<span class="social-icon-dot" style="background:${bg}">${letters[p.id] || "★"}</span>`;
-}
-
 function openSafeSocialLink(platform) {
   const map = { facebook: "fb_click", youtube: "yt_click", tiktok: "tt_click", telegram: "tg_click" };
   if (map[platform.id]) trackAnalytics(map[platform.id]);
   if (!isSafeHttpUrl(platform.url)) {
-    toast(`${platform.name} link is not configured in Admin Panel yet.`, true);
+    toast(
+      state.lang === "BN"
+        ? `${platform.name} লিংক অ্যাডমিন প্যানেল (/admin -> Social Support) থেকে সেট করুন।`
+        : `${platform.name} URL is not set yet. Paste it in /admin -> Social Support.`,
+      true
+    );
     return;
   }
   window.open(platform.url.trim(), "_blank", "noopener,noreferrer");
@@ -1153,12 +1946,14 @@ function openSafeSocialLink(platform) {
 function renderFloatingSocialSupport() {
   const root = document.getElementById("floatingSocialRoot");
   if (!root) return;
-  const cfg = state.socialSupport;
-  if (!cfg || cfg.enabled === false) {
+  const cfg = state.socialSupport || DEFAULT_SOCIAL_SUPPORT;
+  if (cfg.enabled === false) {
     root.innerHTML = "";
     return;
   }
-  const platforms = (cfg.platforms || []).filter((p) => p.enabled !== false).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  const platforms = (cfg.platforms || DEFAULT_SOCIAL_SUPPORT.platforms)
+    .filter((p) => p.enabled !== false)
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   if (platforms.length === 0) {
     root.innerHTML = "";
     return;
@@ -1181,7 +1976,7 @@ function renderFloatingSocialSupport() {
             ${renderSocialBadgeIcon(p)}
             <div style="text-align:left;min-width:0;flex:1">
               <div style="font-weight:700;font-size:.86rem">${escapeHtml(p.name)}</div>
-              ${p.subtitle ? `<div style="font-size:.72rem;opacity:.75">${escapeHtml(p.subtitle)}</div>` : ""}
+              ${p.subtitle ? `<div style="font-size:.72rem;opacity:.78">${escapeHtml(p.subtitle)}</div>` : ""}
             </div>
             <span>↗</span>
           </button>`
@@ -1190,15 +1985,18 @@ function renderFloatingSocialSupport() {
       </div>`
         : ""
     }
-    <button
-      type="button"
-      class="social-fab-btn ${state.socialOpen ? "open" : ""}"
-      id="socialFabTrigger"
-      style="background:linear-gradient(135deg, ${escapeHtml(cfg.primaryHex || "#8B5CF6")}, #00D4FF)"
-      aria-label="${state.socialOpen ? "Close social support" : "Open social support"}"
-    >
-      <span>+</span>
-    </button>
+    <div class="fab-halo-wrap">
+      <div class="fab-halo-ring"></div>
+      <button
+        type="button"
+        class="social-fab-btn ${state.socialOpen ? "open" : ""}"
+        id="socialFabTrigger"
+        style="background:linear-gradient(135deg, ${escapeHtml(cfg.primaryHex || "#8B5CF6")}, #00D4FF)"
+        aria-label="${state.socialOpen ? "Close social support" : "Open social support"}"
+      >
+        <span>+</span>
+      </button>
+    </div>
   `;
 
   document.getElementById("socialFabTrigger").onclick = () => {
@@ -1224,102 +2022,101 @@ function shouldShowPopup(popup) {
   const isReturning = localStorage.getItem(STORAGE_VISITED) === "1";
   if (popup.targetAudience === "NEW_VISITORS" && isReturning) return false;
 
-  let dismissals = {};
-  try {
-    dismissals = JSON.parse(localStorage.getItem(STORAGE_POPUP_DISMISS) || "{}");
-  } catch {
-    dismissals = {};
-  }
+  const dismissals = loadJsonStorage(STORAGE_POPUP_DISMISS, {});
   const lastAt = Number(dismissals[popup.id] || 0);
-  if (popup.frequency === "EVERY_VISIT") return !state.popupShownThisSession;
-  if (popup.frequency === "ONCE_PER_SESSION") return !state.popupShownThisSession;
+  if (popup.frequency === "EVERY_VISIT" || popup.frequency === "ONCE_PER_SESSION") {
+    return !state.popupShownThisSession;
+  }
   if (popup.frequency === "ONCE_PER_USER") return lastAt === 0;
   if (popup.frequency === "ONCE_PER_WEEK") return now - lastAt > 7 * 86400000;
   return now - lastAt > 86400000; // ONCE_PER_DAY
+}
+
+function showWelcomePopupModal(popup) {
+  const root = document.getElementById("welcomePopupRoot");
+  if (!root || !popup) return;
+  state.popupShownThisSession = true;
+  trackAnalytics("popup_impression");
+
+  const cfg = state.socialSupport || DEFAULT_SOCIAL_SUPPORT;
+  const platforms = (cfg.platforms || DEFAULT_SOCIAL_SUPPORT.platforms).filter((p) => p.enabled !== false);
+  const imgSrc = isSafeHttpUrl(popup.imageUrl) ? popup.imageUrl : "/welcome-3d.jpg";
+
+  root.innerHTML = `
+    <div class="popup-3d-card" style="background:${escapeHtml(popup.bgHex || "#120B29")}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <img src="/logo.svg" alt="MY Shop" style="width:40px;height:40px" />
+          <div>
+            <strong>MY Shop</strong>
+            <div class="small" style="color:#00D4FF">${escapeHtml(popup.subtitle || "Shop Smart • Live Happy!")}</div>
+          </div>
+        </div>
+        <button type="button" class="close-circle" id="close3dPopupBtn" aria-label="Close">✕</button>
+      </div>
+      <img src="${escapeHtml(imgSrc)}" alt="MY Shop Welcome" class="popup-art-img" />
+      <h2 style="text-align:center;margin-bottom:6px">${escapeHtml(popup.title || "Welcome to MY Shop!")}</h2>
+      <p class="small" style="text-align:center;opacity:.86">${escapeHtml(popup.description || "")}</p>
+      ${
+        popup.includeSocialButtons !== false && platforms.length
+          ? `<div class="popup-social-grid">
+              ${platforms
+                .map(
+                  (p) => `
+                <button type="button" class="popup-social-btn" data-pop-social="${escapeHtml(p.id)}">
+                  ${renderSocialBadgeIcon(p)}
+                  <span>${escapeHtml(p.name.replace(" Support", ""))}</span>
+                </button>`
+                )
+                .join("")}
+            </div>`
+          : ""
+      }
+      <button type="button" class="btn-neon full-width" id="popupCtaBtn">
+        ✨ ${escapeHtml(popup.buttonText || "Join Our Community")}
+      </button>
+    </div>
+  `;
+  root.classList.remove("hidden");
+
+  const dismiss = () => {
+    root.classList.add("hidden");
+    root.innerHTML = "";
+    trackAnalytics("popup_close");
+    const d = loadJsonStorage(STORAGE_POPUP_DISMISS, {});
+    d[popup.id] = Date.now();
+    saveJsonStorage(STORAGE_POPUP_DISMISS, d);
+  };
+
+  document.getElementById("close3dPopupBtn").onclick = dismiss;
+  document.getElementById("popupCtaBtn").onclick = () => {
+    if (isSafeHttpUrl(popup.buttonUrl)) {
+      window.open(popup.buttonUrl, "_blank", "noopener,noreferrer");
+    } else if (popup.buttonUrl === "/explore") {
+      state.view = "categories";
+      render();
+    }
+    dismiss();
+  };
+  root.querySelectorAll("[data-pop-social]").forEach((b) => {
+    b.onclick = () => {
+      const p = platforms.find((x) => x.id === b.getAttribute("data-pop-social"));
+      if (p) openSafeSocialLink(p);
+    };
+  });
+
+  if (Number(popup.durationSeconds || 0) > 0) {
+    setTimeout(dismiss, Number(popup.durationSeconds) * 1000);
+  }
 }
 
 function evaluateAndShowWelcomePopup() {
   const popup = (state.popups || []).find((p) => shouldShowPopup(p));
   localStorage.setItem(STORAGE_VISITED, "1");
   if (!popup) return;
-
   const delayMs = Math.max(0, Number(popup.delaySeconds || 1)) * 1000;
   setTimeout(() => {
-    const root = document.getElementById("welcomePopupRoot");
-    if (!root || state.popupShownThisSession) return;
-    state.popupShownThisSession = true;
-    trackAnalytics("popup_impression");
-
-    const platforms = (state.socialSupport?.platforms || []).filter((p) => p.enabled !== false);
-    const imgSrc = isSafeHttpUrl(popup.imageUrl) ? popup.imageUrl : "/welcome-3d.jpg";
-
-    root.innerHTML = `
-      <div class="popup-3d-card" style="background:${escapeHtml(popup.bgHex || "#120B29")}">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <img src="/logo.svg" alt="MY Shop" style="width:40px;height:40px" />
-            <div>
-              <strong>MY Shop</strong>
-              <div class="small" style="color:#00D4FF">${escapeHtml(popup.subtitle || "Shop Smart • Live Happy!")}</div>
-            </div>
-          </div>
-          <button type="button" class="close-circle" id="close3dPopupBtn" aria-label="Close">✕</button>
-        </div>
-        <img src="${escapeHtml(imgSrc)}" alt="MY Shop Welcome" class="popup-art-img" />
-        <h2 style="text-align:center;margin-bottom:6px">${escapeHtml(popup.title || "Welcome to MY Shop!")}</h2>
-        <p class="small" style="text-align:center;opacity:.84">${escapeHtml(popup.description || "")}</p>
-        ${
-          popup.includeSocialButtons !== false && platforms.length
-            ? `<div class="popup-social-grid">
-                ${platforms
-                  .map(
-                    (p) => `
-                  <button type="button" class="popup-social-btn" data-pop-social="${escapeHtml(p.id)}">
-                    ${renderSocialBadgeIcon(p)}
-                    <span>${escapeHtml(p.name.replace(" Support", ""))}</span>
-                  </button>`
-                  )
-                  .join("")}
-              </div>`
-            : ""
-        }
-        <button type="button" class="btn-neon full-width" id="popupCtaBtn">
-          ✨ ${escapeHtml(popup.buttonText || "Join Our Community")}
-        </button>
-      </div>
-    `;
-    root.classList.remove("hidden");
-
-    const dismiss = () => {
-      root.classList.add("hidden");
-      root.innerHTML = "";
-      trackAnalytics("popup_close");
-      try {
-        const d = JSON.parse(localStorage.getItem(STORAGE_POPUP_DISMISS) || "{}");
-        d[popup.id] = Date.now();
-        localStorage.setItem(STORAGE_POPUP_DISMISS, JSON.stringify(d));
-      } catch {
-        // Ignore
-      }
-    };
-
-    document.getElementById("close3dPopupBtn").onclick = dismiss;
-    document.getElementById("popupCtaBtn").onclick = () => {
-      if (isSafeHttpUrl(popup.buttonUrl)) {
-        window.open(popup.buttonUrl, "_blank", "noopener,noreferrer");
-      }
-      dismiss();
-    };
-    root.querySelectorAll("[data-pop-social]").forEach((b) => {
-      b.onclick = () => {
-        const p = platforms.find((x) => x.id === b.getAttribute("data-pop-social"));
-        if (p) openSafeSocialLink(p);
-      };
-    });
-
-    if (Number(popup.durationSeconds || 0) > 0) {
-      setTimeout(dismiss, Number(popup.durationSeconds) * 1000);
-    }
+    if (!state.popupShownThisSession) showWelcomePopupModal(popup);
   }, delayMs);
 }
 
@@ -1335,22 +2132,25 @@ async function refreshCustomerOrders() {
   }
 }
 
-async function loadBootstrap() {
+async function loadBootstrap(skipPopup = false) {
   try {
     const [boot, me] = await Promise.all([
       api("/api/public/storefront-bootstrap"),
       api("/api/customer/auth/me").catch(() => ({ authenticated: false })),
     ]);
 
+    state.firebaseConnected = boot.firebaseConnected !== false;
     state.siteConfig = boot.siteConfig || {};
     state.announcement = boot.announcement || {};
-    state.socialSupport = boot.socialSupport || null;
+    state.socialSupport = boot.socialSupport || DEFAULT_SOCIAL_SUPPORT;
     state.popups = Array.isArray(boot.popups) ? boot.popups : [];
     state.products = Array.isArray(boot.products) ? boot.products : [];
     state.categories = Array.isArray(boot.categories) ? boot.categories : [];
     state.brands = Array.isArray(boot.brands) ? boot.brands : [];
     state.coupons = Array.isArray(boot.coupons) ? boot.coupons : [];
     state.deliveryZones = Array.isArray(boot.deliveryZones) ? boot.deliveryZones : [];
+    if (boot.funZone) state.funZone = boot.funZone;
+    if (boot.aiSettings) state.aiSettings = boot.aiSettings;
 
     if (me.authenticated && me.customer) {
       state.customer = me.customer;
@@ -1365,11 +2165,51 @@ async function loadBootstrap() {
   } finally {
     state.loading = false;
     render();
-    evaluateAndShowWelcomePopup();
+    if (!skipPopup) evaluateAndShowWelcomePopup();
   }
 }
 
+function updateAutocomplete(query) {
+  const box = document.getElementById("searchAutocomplete");
+  if (!box) return;
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) {
+    box.classList.add("hidden");
+    box.innerHTML = "";
+    return;
+  }
+  const hits = state.products
+    .filter((p) => `${p.name} ${p.brand} ${p.categoryId}`.toLowerCase().includes(q))
+    .slice(0, 5);
+  if (hits.length === 0) {
+    box.classList.add("hidden");
+    box.innerHTML = "";
+    return;
+  }
+  box.innerHTML = hits
+    .map(
+      (p) => `
+    <div class="auto-row" data-auto-prod="${escapeHtml(p.id)}">
+      <span>${getCategoryMeta(p.categoryId).emoji} ${escapeHtml(p.name)}</span>
+      <strong style="color:var(--emerald)">${money(p.price)}</strong>
+    </div>`
+    )
+    .join("");
+  box.classList.remove("hidden");
+  box.querySelectorAll("[data-auto-prod]").forEach((row) => {
+    row.onclick = () => {
+      box.classList.add("hidden");
+      openProductModal(row.getAttribute("data-auto-prod"));
+    };
+  });
+}
+
 document.addEventListener("click", async (e) => {
+  const autoBox = document.getElementById("searchAutocomplete");
+  if (autoBox && !e.target.closest(".search-wrap")) {
+    autoBox.classList.add("hidden");
+  }
+
   const navTarget = e.target.closest("[data-nav]")?.getAttribute("data-nav");
   if (navTarget) {
     e.preventDefault();
@@ -1388,8 +2228,27 @@ document.addEventListener("click", async (e) => {
   else if (action === "close-modal") closeModal();
   else if (action === "add-cart") addToCart(id);
   else if (action === "toggle-wish") toggleWishlist(id);
-  else if (action === "open-auth") openAuthModal("login");
-  else if (action === "filter-cat") {
+  else if (action === "toggle-compare") {
+    if (state.compareIds.includes(id)) {
+      state.compareIds = state.compareIds.filter((x) => x !== id);
+    } else if (state.compareIds.length >= 4) {
+      toast("Compare up to 4 products at a time.", true);
+    } else {
+      state.compareIds.push(id);
+    }
+    render();
+  } else if (action === "open-compare") openCompareModal();
+  else if (action === "clear-compare") {
+    state.compareIds = [];
+    render();
+  } else if (action === "open-auth") openAuthModal("login");
+  else if (action === "quick-search") {
+    const q = actionEl.getAttribute("data-q") || "";
+    state.filters.search = q;
+    const inp = document.getElementById("globalSearchInput");
+    if (inp) inp.value = q;
+    render();
+  } else if (action === "filter-cat") {
     state.filters.category = actionEl.getAttribute("data-cat") || "ALL";
     render();
   } else if (action === "filter-brand") {
@@ -1404,7 +2263,8 @@ document.addEventListener("click", async (e) => {
     render();
   } else if (action === "reset-filters") {
     state.filters = { search: "", category: "ALL", brand: "", tab: "all", sort: "newest" };
-    document.getElementById("globalSearchInput").value = "";
+    const inp = document.getElementById("globalSearchInput");
+    if (inp) inp.value = "";
     render();
   } else if (action === "cart-qty") {
     const idx = Number(actionEl.getAttribute("data-idx"));
@@ -1454,7 +2314,7 @@ document.addEventListener("click", async (e) => {
     state.orders = [];
     state.wishlistIds = [];
     state.addresses = [];
-    state.cart = loadGuestCart();
+    state.cart = loadJsonStorage(STORAGE_GUEST_CART, []);
     toast("Signed out.");
     render();
   }
@@ -1464,12 +2324,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const searchInput = document.getElementById("globalSearchInput");
   searchInput.addEventListener("input", () => {
     state.filters.search = searchInput.value;
+    updateAutocomplete(searchInput.value);
     if (state.view !== "home" && state.view !== "categories") state.view = "home";
     render();
   });
   document.getElementById("searchSubmitBtn").onclick = () => {
     state.filters.search = searchInput.value;
     state.view = "home";
+    document.getElementById("searchAutocomplete")?.classList.add("hidden");
     render();
   };
   document.getElementById("langToggleBtn").onclick = () => {
@@ -1488,6 +2350,30 @@ document.addEventListener("DOMContentLoaded", () => {
       openAuthModal("login");
     }
   };
+  document.getElementById("dismissSyncNotice")?.addEventListener("click", () => {
+    state.syncNoticeDismissed = true;
+    updateHeaderChromes();
+  });
+  document.getElementById("reopenWelcomeBtn")?.addEventListener("click", () => {
+    const popup = state.popups[0] || {
+      id: "welcome_3d_default",
+      title: "Welcome to MY Shop!",
+      subtitle: "Shop Smart • Live Happy!",
+      description: "Explore deals, Fun Zone rewards & our official Facebook, YouTube, TikTok & Telegram channels!",
+      buttonText: "Explore MY Shop Deals",
+      buttonUrl: "/explore",
+      includeSocialButtons: true,
+      active: true,
+    };
+    showWelcomePopupModal(popup);
+  });
+
+  // Live 1-second Flash Sale countdown tick
+  setInterval(() => {
+    state.flashSeconds = state.flashSeconds > 0 ? state.flashSeconds - 1 : 5 * 3600;
+    const el = document.getElementById("flashCountdownEl");
+    if (el) el.textContent = `Ends in ${formatCountdown(state.flashSeconds)}`;
+  }, 1000);
 
   loadBootstrap();
 });
