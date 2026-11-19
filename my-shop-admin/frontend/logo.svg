@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="myshopGrad" x1="12" y1="12" x2="108" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="52%" stop-color="#00D4FF"/>
+      <stop offset="100%" stop-color="#FF2E93"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="104" height="104" rx="28" fill="#0B0718" stroke="url(#myshopGrad)" stroke-width="4"/>
+  <path d="M36 44C36 30.745 46.745 20 60 20C73.255 20 84 30.745 84 44" stroke="url(#myshopGrad)" stroke-width="6" stroke-linecap="round"/>
+  <rect x="26" y="42" width="68" height="54" rx="14" fill="url(#myshopGrad)" fill-opacity="0.16" stroke="url(#myshopGrad)" stroke-width="4"/>
+  <path d="M40 78V57L50 71L60 57V78" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M70 57L76 68L82 57M76 68V78" stroke="#00D4FF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

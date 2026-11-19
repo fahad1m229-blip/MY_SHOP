@@ -1,0 +1,21 @@
+# Node & Build Artifacts
+node_modules/
+dist/
+build/
+.cache/
+
+# Environment & Secrets (NEVER commit real credentials)
+.env
+.env.local
+.env.production
+*.pem
+*.key
+*service-account*.json
+firebase-adminsdk*.json
+
+# Uploads & Logs
+backend/src/uploads/*
+!backend/src/uploads/.gitkeep
+*.log
+npm-debug.log*
+.DS_Store

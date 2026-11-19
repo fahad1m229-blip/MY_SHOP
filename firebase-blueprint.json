@@ -1,0 +1,238 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated MY Shop customer profile, loyalty balance, wallet credit, and notification/theme preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "language": { "type": "string", "enum": ["EN", "BN"] },
+        "darkMode": { "type": "boolean" },
+        "points": { "type": "integer" },
+        "walletBalance": { "type": "number" },
+        "streakCount": { "type": "integer" },
+        "lastCheckInDate": { "type": "string" },
+        "marketingOptIn": { "type": "boolean" },
+        "orderAlertsOptIn": { "type": "boolean" },
+        "priceDropOptIn": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Set via FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Set via FieldValue.serverTimestamp()" }
+      },
+      "required": ["userId", "displayName", "email", "language", "darkMode", "points", "walletBalance", "streakCount", "marketingOptIn", "orderAlertsOptIn", "priceDropOptIn", "createdAt", "updatedAt"]
+    },
+    "SavedAddress": {
+      "title": "SavedAddress",
+      "description": "Customer delivery address.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "label": { "type": "string" },
+        "recipientName": { "type": "string" },
+        "phone": { "type": "string" },
+        "street": { "type": "string" },
+        "city": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "country": { "type": "string" },
+        "defaultAddress": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "label", "recipientName", "phone", "street", "city", "country", "defaultAddress", "createdAt", "updatedAt"]
+    },
+    "CartItemRecord": {
+      "title": "CartItemRecord",
+      "description": "Synced shopping cart or saved-for-later line item.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "unitPrice": { "type": "number" },
+        "quantity": { "type": "integer" },
+        "selectedColor": { "type": "string" },
+        "selectedSize": { "type": "string" },
+        "savedForLater": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productId", "productName", "unitPrice", "quantity", "savedForLater", "createdAt", "updatedAt"]
+    },
+    "WishlistRecord": {
+      "title": "WishlistRecord",
+      "description": "Customer wishlist item with price-drop and back-in-stock alert toggles.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "priceAlertEnabled": { "type": "boolean" },
+        "stockAlertEnabled": { "type": "boolean" },
+        "targetPrice": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productId", "productName", "priceAlertEnabled", "stockAlertEnabled", "targetPrice", "createdAt", "updatedAt"]
+    },
+    "OrderRecord": {
+      "title": "OrderRecord",
+      "description": "Customer order with payment verification status, idempotency key, and tracking state.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "idempotencyKey": { "type": "string" },
+        "itemsSummary": { "type": "string" },
+        "itemCount": { "type": "integer" },
+        "items": { "type": "array" },
+        "shippingAddress": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string", "enum": ["PENDING", "PAID_SANDBOX", "COD_PENDING", "FAILED", "CANCELLED", "REFUNDED"] },
+        "orderStatus": { "type": "string", "enum": ["Pending", "Confirmed", "Processing", "Shipped", "Out for Delivery", "Delivered", "Cancelled", "Return Requested", "Refunded"] },
+        "transactionRef": { "type": "string" },
+        "trackingCode": { "type": "string" },
+        "couponCode": { "type": "string" },
+        "subtotal": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "orderNumber", "idempotencyKey", "itemsSummary", "itemCount", "items", "shippingAddress", "paymentMethod", "paymentStatus", "orderStatus", "subtotal", "discountAmount", "deliveryFee", "totalAmount", "createdAt", "updatedAt"]
+    },
+    "RewardRecord": {
+      "title": "RewardRecord",
+      "description": "Fun Zone earned coupon or promotional reward.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "couponCode": { "type": "string" },
+        "discountType": { "type": "string", "enum": ["PERCENT", "FIXED", "FREE_DELIVERY", "POINTS"] },
+        "discountValue": { "type": "number" },
+        "minSpend": { "type": "number" },
+        "source": { "type": "string" },
+        "redeemed": { "type": "boolean" },
+        "expiresLabel": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "discountType", "discountValue", "minSpend", "source", "redeemed", "expiresLabel", "createdAt", "updatedAt"]
+    },
+    "NotificationRecord": {
+      "title": "NotificationRecord",
+      "description": "Customer notification entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "category": { "type": "string", "enum": ["ORDER", "PAYMENT", "SHIPPING", "PRICE_DROP", "FLASH_SALE", "REWARD", "SUPPORT"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "body", "category", "read", "createdAt", "updatedAt"]
+    },
+    "SupportTicketRecord": {
+      "title": "SupportTicketRecord",
+      "description": "Customer support ticket.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "subject": { "type": "string" },
+        "orderId": { "type": "string" },
+        "category": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["Open", "In Progress", "Resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "subject", "category", "message", "status", "createdAt", "updatedAt"]
+    },
+    "UserReviewRecord": {
+      "title": "UserReviewRecord",
+      "description": "Verified customer review submitted by a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "productId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "rating": { "type": "integer" },
+        "comment": { "type": "string" },
+        "verifiedPurchase": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productId", "authorName", "rating", "comment", "verifiedPurchase", "createdAt", "updatedAt"]
+    },
+    "CatalogCoupon": {
+      "title": "CatalogCoupon",
+      "description": "Shared promotional coupon managed by the Admin Panel Render backend via Firebase Admin SDK.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "title": { "type": "string" },
+        "discountType": { "type": "string", "enum": ["PERCENT", "FIXED", "FREE_DELIVERY"] },
+        "value": { "type": "number" },
+        "minSpend": { "type": "number" },
+        "expiresLabel": { "type": "string" }
+      },
+      "required": ["code", "title", "discountType", "value", "minSpend", "expiresLabel"]
+    }
+  },
+  "firestore": {
+    "/catalog_products/{productId}": {
+      "schema": { "$ref": "#/entities/CatalogCoupon" },
+      "description": "Shared MY Shop catalog managed via Firebase Admin SDK on Render backend (client read-only)."
+    },
+    "/catalog_coupons/{couponCode}": {
+      "schema": { "$ref": "#/entities/CatalogCoupon" },
+      "description": "Shared MY Shop coupons managed via Firebase Admin SDK on Render backend (client read-only)."
+    },
+    "/fun_zone_config/{configId}": {
+      "schema": { "$ref": "#/entities/CatalogCoupon" },
+      "description": "Shared MY Shop Fun Zone reward rules managed via Firebase Admin SDK on Render backend (client read-only)."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Customer profile & preferences document."
+    },
+    "/users/{userId}/addresses/{addressId}": {
+      "schema": { "$ref": "#/entities/SavedAddress" },
+      "description": "Customer saved delivery addresses."
+    },
+    "/users/{userId}/cart/{cartItemId}": {
+      "schema": { "$ref": "#/entities/CartItemRecord" },
+      "description": "Customer synced shopping cart and saved-for-later items."
+    },
+    "/users/{userId}/wishlist/{productId}": {
+      "schema": { "$ref": "#/entities/WishlistRecord" },
+      "description": "Customer wishlist and alert settings."
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/OrderRecord" },
+      "description": "Customer orders and payment verification status."
+    },
+    "/users/{userId}/rewards/{rewardId}": {
+      "schema": { "$ref": "#/entities/RewardRecord" },
+      "description": "Customer Fun Zone coupons and rewards."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/NotificationRecord" },
+      "description": "Customer notification center items."
+    },
+    "/users/{userId}/support_tickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/SupportTicketRecord" },
+      "description": "Customer support tickets."
+    },
+    "/users/{userId}/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/UserReviewRecord" },
+      "description": "User-submitted product reviews."
+    }
+  }
+}

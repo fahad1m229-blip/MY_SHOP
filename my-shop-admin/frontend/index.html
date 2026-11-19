@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MY Shop Super Admin</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/logo.svg" />
+  <link rel="stylesheet" href="/admin/styles.css" />
+</head>
+<body>
+  <!-- LOGIN VIEW (/admin) -->
+  <section id="loginView" class="login-screen">
+    <div class="aurora-orb orb-1"></div>
+    <div class="aurora-orb orb-2"></div>
+    <div class="login-card glass-panel">
+      <div class="brand-lockup">
+        <img src="/admin/logo.svg" alt="MY Shop Logo" class="brand-logo" />
+        <div>
+          <h1>MY Shop Super Admin</h1>
+          <p class="muted">Enterprise Control Center • Render API Gateway</p>
+        </div>
+      </div>
+
+      <div id="loginError" class="alert hidden"></div>
+
+      <form id="loginForm" class="stack-form">
+        <label>
+          <span>Admin Username</span>
+          <input type="text" id="loginUsername" autocomplete="username" placeholder="superadmin" required />
+        </label>
+        <label>
+          <span>Admin Password</span>
+          <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••••••" required />
+        </label>
+        <button type="submit" class="btn-neon full-width" id="loginBtn">Sign In to Super Admin</button>
+      </form>
+
+      <div class="login-footer">
+        <button type="button" class="btn-ghost small" id="openRecoveryBtn">Forgot password? Recovery</button>
+        <button type="button" class="btn-ghost small" id="loginThemeToggle">Light / Dark</button>
+      </div>
+
+      <form id="recoveryForm" class="stack-form hidden">
+        <p class="muted small">Enter your configured Admin Email to generate a time-limited server recovery token.</p>
+        <label>
+          <span>Admin Email</span>
+          <input type="email" id="recoveryEmail" placeholder="admin@myshop.example" required />
+        </label>
+        <button type="submit" class="btn-outline">Request Recovery Token</button>
+        <hr class="divider" />
+        <label>
+          <span>Server Recovery Token</span>
+          <input type="text" id="resetTokenInput" placeholder="Paste server token" />
+        </label>
+        <label>
+          <span>New Password (10+ chars)</span>
+          <input type="password" id="resetNewPassword" placeholder="Minimum 10 characters" />
+        </label>
+        <button type="button" class="btn-neon" id="confirmResetBtn">Reset Admin Password</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- MAIN SUPER ADMIN SHELL -->
+  <div id="adminShell" class="admin-shell hidden">
+    <aside id="sidebar" class="sidebar glass-panel">
+      <div class="sidebar-header">
+        <img src="/admin/logo.svg" alt="MY Shop" class="brand-logo-sm" />
+        <div class="brand-text">
+          <strong>MY Shop</strong>
+          <small>Super Admin</small>
+        </div>
+        <button type="button" id="collapseSidebarBtn" class="icon-btn" title="Collapse sidebar">☰</button>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebarNav">
+        <button data-tab="dashboard" class="nav-item active">📊 <span>Dashboard</span></button>
+        <button data-tab="products" class="nav-item">📦 <span>Products & Images</span></button>
+        <button data-tab="categories" class="nav-item">🗂️ <span>Categories & Brands</span></button>
+        <button data-tab="orders" class="nav-item">🚚 <span>Orders & Invoices</span></button>
+        <button data-tab="customers" class="nav-item">👥 <span>Customers & Support</span></button>
+        <button data-tab="payments" class="nav-item">💳 <span>Payments & Refunds</span></button>
+        <button data-tab="marketing" class="nav-item">⚡ <span>Flash Sales & Coupons</span></button>
+        <button data-tab="funzone" class="nav-item">🎰 <span>MY Fun Zone</span></button>
+        <button data-tab="ai" class="nav-item">🤖 <span>AI Assistant</span></button>
+        <button data-tab="cms" class="nav-item">🎨 <span>Website Customization</span></button>
+        <button data-tab="popups" class="nav-item">📢 <span>Popup & Notices</span></button>
+        <button data-tab="sellers" class="nav-item">🏪 <span>Sellers & Delivery</span></button>
+        <button data-tab="reviews" class="nav-item">⭐ <span>Reviews & Content</span></button>
+        <button data-tab="notifications" class="nav-item">🔔 <span>Notifications</span></button>
+        <button data-tab="reports" class="nav-item">📈 <span>Reports & Export</span></button>
+        <button data-tab="settings" class="nav-item">⚙️ <span>Security & Settings</span></button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" id="logoutBtn" class="btn-danger full-width">🚪 <span>Logout</span></button>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <header class="topbar glass-panel">
+        <div class="topbar-left">
+          <button type="button" id="mobileMenuBtn" class="icon-btn mobile-only">☰</button>
+          <div>
+            <h2 id="pageTitle">Dashboard Overview</h2>
+            <small id="firebaseStatusBadge" class="status-pill">Connecting to backend…</small>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button type="button" id="refreshBtn" class="btn-outline small">↻ Sync</button>
+          <button type="button" id="themeToggleBtn" class="btn-outline small">🌓 Theme</button>
+          <span id="adminUserChip" class="admin-chip">superadmin</span>
+        </div>
+      </header>
+
+      <div id="toastBanner" class="toast hidden"></div>
+      <main id="workspace" class="workspace"></main>
+    </div>
+  </div>
+
+  <script src="/admin/app.js" defer></script>
+</body>
+</html>

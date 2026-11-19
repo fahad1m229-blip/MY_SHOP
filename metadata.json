@@ -1,0 +1,6 @@
+{
+  "name": "MY Shop",
+  "description": "Next-generation e-commerce platform with guest browsing, MY Fun Zone, AI Shopping Assistant, multi-method checkout, and order tracking. Shop Smart • Live Happy!",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
