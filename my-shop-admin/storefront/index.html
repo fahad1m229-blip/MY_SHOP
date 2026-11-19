@@ -14,18 +14,6 @@
     <div class="orb orb-pink"></div>
   </div>
 
-  <!-- Live Admin Announcement Ticker -->
-  <div id="announcementBar" class="announcement-bar hidden">
-    <span id="announcementBadge" class="ann-badge">FLASH DEAL</span>
-    <span id="announcementText" class="ann-text"></span>
-  </div>
-
-  <!-- Firebase / Live Sync Status Notice (only visible if Render Admin SDK env is missing) -->
-  <div id="syncStatusBar" class="sync-notice-bar hidden">
-    <span id="syncStatusText"></span>
-    <button type="button" id="dismissSyncNotice" class="sync-dismiss-btn" aria-label="Dismiss notice">✕</button>
-  </div>
-
   <!-- Responsive Top Header -->
   <header class="store-header glass-panel">
     <div class="container header-inner">
@@ -37,7 +25,7 @@
         </div>
       </a>
 
-      <div class="search-wrap">
+      <div class="search-wrap desktop-only-search">
         <input
           type="search"
           id="globalSearchInput"
@@ -49,18 +37,18 @@
       </div>
 
       <div class="header-actions">
-        <button type="button" id="langToggleBtn" class="pill-btn" title="Switch Language">EN / বাং</button>
-        <button type="button" id="themeToggleBtn" class="pill-btn" title="Light / Dark Mode">🌓</button>
-        <button type="button" class="pill-btn desktop-only" data-nav="ai" title="MY AI Helper">
-          ✨ <span data-i18n="aiHelper">MY AI</span>
+        <button type="button" class="pill-btn icon-pill" data-nav="ai" title="MY AI Helper">
+          ✨ <span class="desktop-only" data-i18n="aiHelper">MY AI</span>
         </button>
+        <button type="button" id="langToggleBtn" class="pill-btn" title="Switch Language">EN / বাং</button>
+        <button type="button" id="themeToggleBtn" class="pill-btn icon-pill" title="Light / Dark Mode">🌓</button>
         <button type="button" class="pill-btn desktop-only" data-nav="wishlist">
           ❤️ <span data-i18n="wishlist">Wishlist</span> (<span id="wishlistBadgeTop">0</span>)
         </button>
         <button type="button" class="pill-btn" data-nav="cart" id="topCartBtn">
           🛒 <span class="desktop-only" data-i18n="cart">Cart</span> <span id="cartBadgeTop" class="count-badge">0</span>
         </button>
-        <button type="button" id="topAccountBtn" class="btn-neon sm">
+        <button type="button" id="topAccountBtn" class="btn-neon sm desktop-only">
           👤 <span id="topAccountLabel">Sign In</span>
         </button>
       </div>
@@ -77,6 +65,32 @@
       <button type="button" class="subnav-btn" data-nav="profile">👤 <span data-i18n="profile">Account</span></button>
     </nav>
   </header>
+
+  <!-- Live Admin Announcement Ticker -->
+  <div id="announcementBar" class="announcement-bar hidden">
+    <span id="announcementBadge" class="ann-badge">FLASH DEAL</span>
+    <span id="announcementText" class="ann-text"></span>
+  </div>
+
+  <!-- Firebase / Live Sync Status Notice (only visible if Render Admin SDK env is missing) -->
+  <div id="syncStatusBar" class="sync-notice-bar hidden">
+    <span id="syncStatusText"></span>
+    <button type="button" id="dismissSyncNotice" class="sync-dismiss-btn" aria-label="Dismiss notice">✕</button>
+  </div>
+
+  <!-- Mobile Search Bar (Matches Android Home placement without bloating sticky header) -->
+  <div class="container mobile-search-dock">
+    <div class="search-wrap">
+      <input
+        type="search"
+        id="mobileSearchInput"
+        placeholder="Search phones, laptops, fashion, brands..."
+        autocomplete="off"
+      />
+      <button type="button" id="mobileSearchSubmitBtn" class="btn-neon sm" aria-label="Search">🔍</button>
+      <div id="mobileSearchAutocomplete" class="search-autocomplete hidden"></div>
+    </div>
+  </div>
 
   <div id="toastBanner" class="toast hidden"></div>
 
@@ -135,6 +149,9 @@
     </button>
     <button type="button" class="mob-nav-btn" data-nav="funzone">
       <span>🎮</span><small data-i18n="funZone">Fun Zone</small>
+    </button>
+    <button type="button" class="mob-nav-btn" data-nav="ai">
+      <span>✨</span><small data-i18n="aiHelper">MY AI</small>
     </button>
     <button type="button" class="mob-nav-btn" data-nav="cart">
       <span>🛒<b id="cartBadgeMob" class="mob-badge hidden">0</b></span><small data-i18n="cart">Cart</small>

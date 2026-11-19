@@ -587,7 +587,9 @@ function renderHomeOrBrowse(mode = "home") {
     mode === "home" && !state.filters.search
       ? `
       <section class="hero-banner glass-panel">
-        <div>
+        <img src="/hero-deals.jpg" alt="MY Shop Cyber Deals" class="hero-bg-img" onerror="this.src='/welcome-3d.jpg'" />
+        <div class="hero-scrim"></div>
+        <div class="hero-content">
           <span class="hero-badge">⚡ ${escapeHtml(t("heroBadge"))}</span>
           <h1>${escapeHtml(t("heroTitle"))}</h1>
           <p>${escapeHtml(t("heroSub"))}</p>
@@ -598,9 +600,6 @@ function renderHomeOrBrowse(mode = "home") {
             <button type="button" class="btn-outline" data-nav="deals">${escapeHtml(t("viewDeals"))}</button>
             <button type="button" class="btn-outline" data-nav="funzone">🎮 ${escapeHtml(t("funZone"))}</button>
           </div>
-        </div>
-        <div>
-          <img src="/hero-deals.jpg" alt="MY Shop Cyber Deals" class="hero-art" onerror="this.src='/welcome-3d.jpg'" />
         </div>
       </section>
     `
@@ -2169,24 +2168,30 @@ async function loadBootstrap(skipPopup = false) {
   }
 }
 
-function updateAutocomplete(query) {
-  const box = document.getElementById("searchAutocomplete");
-  if (!box) return;
+function updateAutocomplete(query, targetId = "searchAutocomplete") {
+  const boxes = [
+    document.getElementById(targetId),
+    document.getElementById(targetId === "searchAutocomplete" ? "mobileSearchAutocomplete" : "searchAutocomplete"),
+  ].filter(Boolean);
   const q = String(query || "").trim().toLowerCase();
   if (!q) {
-    box.classList.add("hidden");
-    box.innerHTML = "";
+    boxes.forEach((box) => {
+      box.classList.add("hidden");
+      box.innerHTML = "";
+    });
     return;
   }
   const hits = state.products
     .filter((p) => `${p.name} ${p.brand} ${p.categoryId}`.toLowerCase().includes(q))
     .slice(0, 5);
+  const activeBox = document.getElementById(targetId);
+  if (!activeBox) return;
   if (hits.length === 0) {
-    box.classList.add("hidden");
-    box.innerHTML = "";
+    activeBox.classList.add("hidden");
+    activeBox.innerHTML = "";
     return;
   }
-  box.innerHTML = hits
+  activeBox.innerHTML = hits
     .map(
       (p) => `
     <div class="auto-row" data-auto-prod="${escapeHtml(p.id)}">
@@ -2195,19 +2200,19 @@ function updateAutocomplete(query) {
     </div>`
     )
     .join("");
-  box.classList.remove("hidden");
-  box.querySelectorAll("[data-auto-prod]").forEach((row) => {
+  activeBox.classList.remove("hidden");
+  activeBox.querySelectorAll("[data-auto-prod]").forEach((row) => {
     row.onclick = () => {
-      box.classList.add("hidden");
+      activeBox.classList.add("hidden");
       openProductModal(row.getAttribute("data-auto-prod"));
     };
   });
 }
 
 document.addEventListener("click", async (e) => {
-  const autoBox = document.getElementById("searchAutocomplete");
-  if (autoBox && !e.target.closest(".search-wrap")) {
-    autoBox.classList.add("hidden");
+  if (!e.target.closest(".search-wrap")) {
+    document.getElementById("searchAutocomplete")?.classList.add("hidden");
+    document.getElementById("mobileSearchAutocomplete")?.classList.add("hidden");
   }
 
   const navTarget = e.target.closest("[data-nav]")?.getAttribute("data-nav");
@@ -2246,7 +2251,9 @@ document.addEventListener("click", async (e) => {
     const q = actionEl.getAttribute("data-q") || "";
     state.filters.search = q;
     const inp = document.getElementById("globalSearchInput");
+    const minp = document.getElementById("mobileSearchInput");
     if (inp) inp.value = q;
+    if (minp) minp.value = q;
     render();
   } else if (action === "filter-cat") {
     state.filters.category = actionEl.getAttribute("data-cat") || "ALL";
@@ -2264,7 +2271,9 @@ document.addEventListener("click", async (e) => {
   } else if (action === "reset-filters") {
     state.filters = { search: "", category: "ALL", brand: "", tab: "all", sort: "newest" };
     const inp = document.getElementById("globalSearchInput");
+    const minp = document.getElementById("mobileSearchInput");
     if (inp) inp.value = "";
+    if (minp) minp.value = "";
     render();
   } else if (action === "cart-qty") {
     const idx = Number(actionEl.getAttribute("data-idx"));
@@ -2322,18 +2331,32 @@ document.addEventListener("click", async (e) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   const searchInput = document.getElementById("globalSearchInput");
-  searchInput.addEventListener("input", () => {
-    state.filters.search = searchInput.value;
-    updateAutocomplete(searchInput.value);
+  const mobSearchInput = document.getElementById("mobileSearchInput");
+
+  const handleSearchTyping = (val, boxId) => {
+    state.filters.search = val;
+    if (searchInput && searchInput.value !== val) searchInput.value = val;
+    if (mobSearchInput && mobSearchInput.value !== val) mobSearchInput.value = val;
+    updateAutocomplete(val, boxId);
     if (state.view !== "home" && state.view !== "categories") state.view = "home";
     render();
-  });
-  document.getElementById("searchSubmitBtn").onclick = () => {
-    state.filters.search = searchInput.value;
+  };
+
+  searchInput?.addEventListener("input", () => handleSearchTyping(searchInput.value, "searchAutocomplete"));
+  mobSearchInput?.addEventListener("input", () => handleSearchTyping(mobSearchInput.value, "mobileSearchAutocomplete"));
+
+  document.getElementById("searchSubmitBtn")?.addEventListener("click", () => {
+    state.filters.search = searchInput?.value || "";
     state.view = "home";
     document.getElementById("searchAutocomplete")?.classList.add("hidden");
     render();
-  };
+  });
+  document.getElementById("mobileSearchSubmitBtn")?.addEventListener("click", () => {
+    state.filters.search = mobSearchInput?.value || "";
+    state.view = "home";
+    document.getElementById("mobileSearchAutocomplete")?.classList.add("hidden");
+    render();
+  });
   document.getElementById("langToggleBtn").onclick = () => {
     state.lang = state.lang === "EN" ? "BN" : "EN";
     render();
