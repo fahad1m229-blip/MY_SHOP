@@ -10,6 +10,12 @@ Enterprise-grade Super Admin Panel for **MY Shop** (*"Shop Smart • Live Happy!
 ## Project Structure
 ```text
 my-shop-admin/
+├── storefront/                # Customer Shopping Website (/)
+│   ├── index.html
+│   ├── styles.css
+│   ├── app.js
+│   ├── welcome-3d.jpg
+│   └── logo.svg
 ├── frontend/                  # Responsive Neon Glassmorphism Admin SPA (/admin)
 │   ├── index.html
 │   ├── styles.css
@@ -19,9 +25,9 @@ my-shop-admin/
 │   ├── package.json
 │   ├── src/
 │   │   ├── config/            # Env loader & Firebase Admin SDK initializer
-│   │   ├── middleware/        # HttpOnly JWT Auth, Rate Limiter, Validation
+│   │   ├── middleware/        # HttpOnly Admin & Customer JWT Auth, Rate Limiter, Validation
 │   │   ├── services/          # Audit Logs & Firebase Storage multi-image uploads
-│   │   ├── routes/            # Auth, Dashboard, Catalog, Orders, Customers, Marketing, CMS, Settings
+│   │   ├── routes/            # Public Storefront, Customer, Auth, Dashboard, Catalog, Orders, Customers, Marketing, CMS, Settings
 │   │   └── server.js
 │   └── test/                  # Node.js backend integration tests
 ├── .env.example

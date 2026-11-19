@@ -137,6 +137,7 @@ async function hashPassword(plain) {
 
 module.exports = {
   COOKIE_NAME,
+  getSigningSecret,
   resolveActivePasswordHash,
   checkLockout,
   recordFailedAttempt,

@@ -35,20 +35,44 @@ after(async () => {
   if (server) await new Promise((resolve) => server.close(resolve));
 });
 
-test("Health endpoint and /admin SPA serve without Firebase Client SDK", async () => {
+test("Routing serves Customer Website at /, Admin Panel ONLY at /admin, and JSON 404 for unknown /api", async () => {
   const health = await fetch(`${baseUrl}/api/health`);
   assert.equal(health.status, 200);
   const hJson = await health.json();
   assert.equal(hJson.status, "ok");
 
+  // "/" MUST open Customer Website, NOT Admin Panel
+  const customerHomeRes = await fetch(`${baseUrl}/`);
+  assert.equal(customerHomeRes.status, 200);
+  const customerHtml = await customerHomeRes.text();
+  assert.ok(customerHtml.includes("MY Shop — Shop Smart • Live Happy!"));
+  assert.ok(customerHtml.includes("storefrontMain"));
+  assert.equal(customerHtml.includes("MY Shop Super Admin"), false);
+
+  // Storefront SPA deep route must serve Customer Website
+  const customerDeepRes = await fetch(`${baseUrl}/cart`);
+  assert.equal(customerDeepRes.status, 200);
+  const customerDeepHtml = await customerDeepRes.text();
+  assert.ok(customerDeepHtml.includes("storefrontMain"));
+
+  // "/admin" and "/admin/*" MUST serve Admin Dashboard without Firebase Client SDK
   const adminHtml = await (await fetch(`${baseUrl}/admin`)).text();
   assert.ok(adminHtml.includes("MY Shop Super Admin"));
   assert.equal(adminHtml.includes("firebaseConfig"), false);
   assert.equal(adminHtml.includes("initializeApp"), false);
 
+  const adminDeepHtml = await (await fetch(`${baseUrl}/admin/orders`)).text();
+  assert.ok(adminDeepHtml.includes("MY Shop Super Admin"));
+
   const appJs = await (await fetch(`${baseUrl}/admin/app.js`)).text();
   assert.equal(appJs.includes("firebaseConfig"), false);
   assert.equal(appJs.includes("firebase/"), false);
+
+  // Unknown API routes must return JSON 404, NOT HTML SPA fallback
+  const unknownApi = await fetch(`${baseUrl}/api/nonexistent/route`);
+  assert.equal(unknownApi.status, 404);
+  const unknownJson = await unknownApi.json();
+  assert.equal(unknownJson.error, "API endpoint not found.");
 });
 
 test("Default social support config has zero hardcoded social URLs and validates bad URLs", () => {
@@ -92,7 +116,7 @@ test("Protected admin routes reject unauthenticated access with 401", async () =
   assert.equal(analytics.status, 401);
 });
 
-test("Admin login issues HttpOnly cookie, validates Social/Popup inputs, and supports public analytics + logout", async () => {
+test("Admin login, Admin->Customer live catalog sync, Customer registration/cart/checkout & security isolation", async () => {
   const badLogin = await fetch(`${baseUrl}/api/admin/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -145,6 +169,91 @@ test("Admin login issues HttpOnly cookie, validates Social/Popup inputs, and sup
   assert.equal(badAnalytics.status, 400);
 
   if (process.env.FIRESTORE_EMULATOR_HOST) {
+    // 1. Admin creates product -> Customer public API sees it automatically
+    const prodId = `prod_sync_${Date.now()}`;
+    const createProd = await fetch(`${baseUrl}/api/admin/catalog/products`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({
+        id: prodId,
+        name: "Quantum Buds Pro",
+        categoryId: "ELECTRONICS",
+        brand: "SonicWave",
+        price: 3490,
+        originalPrice: 4200,
+        stock: 15,
+        published: true,
+        available: true,
+        mainImageUrl: "https://example.com/buds.jpg",
+      }),
+    });
+    assert.equal(createProd.status, 201);
+
+    const publicCatalog = await (await fetch(`${baseUrl}/api/public/products`)).json();
+    const syncedProduct = publicCatalog.items.find((p) => p.id === prodId);
+    assert.ok(syncedProduct);
+    assert.equal(syncedProduct.price, 3490);
+    assert.equal(syncedProduct.stock, 15);
+
+    // 2. Customer registers while carrying a guest cart item
+    const custEmail = `shopper_${Date.now()}@example.com`;
+    const regRes = await fetch(`${baseUrl}/api/customer/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        displayName: "Fahad Shopper",
+        email: custEmail,
+        phone: "+8801700000000",
+        password: "CustomerPass#2026",
+        guestCart: [{ productId: prodId, quantity: 2 }],
+      }),
+    });
+    assert.equal(regRes.status, 201);
+    const custCookieHeader = regRes.headers.get("set-cookie") || "";
+    assert.ok(custCookieHeader.includes("myshop_customer_session="));
+    const custCookie = custCookieHeader.split(";")[0];
+    const regJson = await regRes.json();
+    assert.equal(regJson.cart.length, 1);
+    assert.equal(regJson.cart[0].quantity, 2);
+
+    // 3. Customer cookie MUST NOT access Admin routes
+    const adminBlockedForCustomer = await fetch(`${baseUrl}/api/admin/dashboard`, {
+      headers: { Cookie: custCookie },
+    });
+    assert.equal(adminBlockedForCustomer.status, 401);
+
+    // 4. Customer toggles wishlist and places order -> Admin Orders sees it & stock updates
+    const wishRes = await fetch(`${baseUrl}/api/customer/wishlist/toggle`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: custCookie },
+      body: JSON.stringify({ productId: prodId }),
+    });
+    assert.equal(wishRes.status, 200);
+    assert.equal((await wishRes.json()).wished, true);
+
+    const orderRes = await fetch(`${baseUrl}/api/customer/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: custCookie },
+      body: JSON.stringify({
+        items: [{ productId: prodId, quantity: 2 }],
+        shippingAddress: "Fahad, +8801700000000, House 12, Gulshan, Dhaka",
+        paymentMethod: "Cash on Delivery",
+      }),
+    });
+    assert.equal(orderRes.status, 201);
+    const orderJson = await orderRes.json();
+    assert.equal(orderJson.totalAmount, 6980);
+
+    // Stock decremented from 15 -> 13
+    const updatedDetail = await (await fetch(`${baseUrl}/api/public/products/${prodId}`)).json();
+    assert.equal(updatedDetail.product.stock, 13);
+
+    // Admin sees customer order
+    const adminOrders = await (
+      await fetch(`${baseUrl}/api/admin/orders`, { headers: { Cookie: cookiePair } })
+    ).json();
+    assert.ok(adminOrders.items.some((o) => o.orderNumber === orderJson.orderNumber));
+
     // End-to-end Social Support publish -> Public read
     const pubSocial = await fetch(`${baseUrl}/api/admin/cms/social-support/publish`, {
       method: "POST",

@@ -94,6 +94,7 @@ service cloud.firestore {
     match /payment_transactions/{docId} { allow read, write: if false; }
     match /delivery_zones/{docId} { allow read, write: if false; }
     match /admin_settings/{docId} { allow read, write: if false; }
+    match /customer_credentials/{docId} { allow read, write: if false; }
 
     function isSignedIn() {
       return request.auth != null;

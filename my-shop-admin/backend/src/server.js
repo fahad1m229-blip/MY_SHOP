@@ -16,6 +16,7 @@ const customerRoutes = require("./routes/customerRoutes");
 const marketingRoutes = require("./routes/marketingRoutes");
 const cmsRoutes = require("./routes/cmsRoutes");
 const publicRoutes = require("./routes/publicRoutes");
+const customerRoutesWeb = require("./routes/customerRoutesWeb");
 const settingsRoutes = require("./routes/settingsRoutes");
 
 function createApp() {
@@ -66,14 +67,34 @@ function createApp() {
   app.use("/api/admin/cms", cmsRoutes);
   app.use("/api/admin/settings", settingsRoutes);
   app.use("/api/public", publicRoutes);
+  app.use("/api/customer", customerRoutesWeb);
 
-  // Serve Admin Panel Frontend SPA (ZERO Firebase Client SDK in frontend)
-  const frontendDir = path.resolve(__dirname, "../../frontend");
-  app.use("/admin", express.static(frontendDir));
-  app.use(express.static(frontendDir));
+  // Prevent any SPA fallback route from intercepting unknown /api/* requests
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "API endpoint not found." });
+  });
 
-  app.get(["/", "/admin", "/admin/*"], (_req, res) => {
-    res.sendFile(path.join(frontendDir, "index.html"));
+  // 1. Admin Panel Frontend SPA ONLY at /admin and /admin/* (ZERO Firebase Client SDK in frontend)
+  const adminFrontendDir = path.resolve(__dirname, "../../frontend");
+  app.use("/admin", express.static(adminFrontendDir, { index: "index.html" }));
+  app.get(["/admin", "/admin/*"], (req, res) => {
+    if (path.extname(req.path)) {
+      return res.status(404).json({ error: "Admin asset not found." });
+    }
+    return res.sendFile(path.join(adminFrontendDir, "index.html"));
+  });
+
+  // 2. Customer Shopping Website at "/" and storefront SPA routes
+  const storefrontDir = path.resolve(__dirname, "../../storefront");
+  app.use(express.static(storefrontDir, { index: "index.html" }));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api") || req.path === "/admin" || req.path.startsWith("/admin/")) {
+      return next();
+    }
+    if (path.extname(req.path)) {
+      return res.status(404).json({ error: "Asset not found." });
+    }
+    return res.sendFile(path.join(storefrontDir, "index.html"));
   });
 
   // Centralized error handler

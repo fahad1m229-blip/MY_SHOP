@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MY Shop — Shop Smart • Live Happy!</title>
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="bg-aurora">
+    <div class="orb orb-purple"></div>
+    <div class="orb orb-cyan"></div>
+    <div class="orb orb-pink"></div>
+  </div>
+
+  <!-- Live Admin Announcement Ticker -->
+  <div id="announcementBar" class="announcement-bar hidden">
+    <span id="announcementBadge" class="ann-badge">FLASH DEAL</span>
+    <span id="announcementText" class="ann-text"></span>
+  </div>
+
+  <!-- Responsive Top Header -->
+  <header class="store-header glass-panel">
+    <div class="container header-inner">
+      <a href="/" class="brand-link" data-nav="home">
+        <img src="/logo.svg" alt="MY Shop" class="brand-logo" />
+        <div class="brand-meta">
+          <strong id="brandSiteName">MY Shop</strong>
+          <small id="brandTagline">Shop Smart • Live Happy!</small>
+        </div>
+      </a>
+
+      <div class="search-wrap">
+        <input
+          type="search"
+          id="globalSearchInput"
+          placeholder="Search mobiles, electronics, fashion, brands..."
+          autocomplete="off"
+        />
+        <button type="button" id="searchSubmitBtn" class="btn-neon sm" aria-label="Search">🔍</button>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" id="langToggleBtn" class="pill-btn" title="Switch Language">EN / বাং</button>
+        <button type="button" id="themeToggleBtn" class="pill-btn" title="Light / Dark Mode">🌓</button>
+        <button type="button" class="pill-btn desktop-only" data-nav="wishlist">
+          ❤️ <span data-i18n="wishlist">Wishlist</span> (<span id="wishlistBadgeTop">0</span>)
+        </button>
+        <button type="button" class="pill-btn" data-nav="cart" id="topCartBtn">
+          🛒 <span class="desktop-only" data-i18n="cart">Cart</span> <span id="cartBadgeTop" class="count-badge">0</span>
+        </button>
+        <button type="button" id="topAccountBtn" class="btn-neon sm">
+          👤 <span id="topAccountLabel">Sign In</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Desktop Sub Navigation -->
+    <nav class="container desktop-nav desktop-only" id="desktopNav">
+      <button type="button" class="subnav-btn active" data-nav="home">🏠 <span data-i18n="home">Home</span></button>
+      <button type="button" class="subnav-btn" data-nav="categories">🗂️ <span data-i18n="categories">Categories</span></button>
+      <button type="button" class="subnav-btn" data-nav="deals">⚡ <span data-i18n="deals">Deals & Coupons</span></button>
+      <button type="button" class="subnav-btn" data-nav="orders">📦 <span data-i18n="orders">Orders</span></button>
+      <button type="button" class="subnav-btn" data-nav="profile">👤 <span data-i18n="profile">Account</span></button>
+    </nav>
+  </header>
+
+  <div id="toastBanner" class="toast hidden"></div>
+
+  <!-- Main Storefront Workspace -->
+  <main id="storefrontMain" class="container main-content"></main>
+
+  <!-- Storefront Footer -->
+  <footer class="store-footer glass-panel">
+    <div class="container footer-grid">
+      <div>
+        <div class="footer-brand">
+          <img src="/logo.svg" alt="MY Shop" class="brand-logo-sm" />
+          <div>
+            <strong id="footerSiteName">MY Shop</strong>
+            <p class="muted small" id="footerTagline">Shop Smart • Live Happy!</p>
+          </div>
+        </div>
+        <p class="muted small" id="footerDescription">Next-generation futuristic e-commerce platform synchronized with live catalog & fast delivery.</p>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <div class="footer-links">
+          <button type="button" class="link-btn" data-nav="home">Home</button>
+          <button type="button" class="link-btn" data-nav="categories">All Categories</button>
+          <button type="button" class="link-btn" data-nav="cart">Shopping Cart</button>
+          <button type="button" class="link-btn" data-nav="orders">Track Orders</button>
+        </div>
+      </div>
+      <div>
+        <h4>Customer Care</h4>
+        <p class="muted small" id="footerContactEmail">support@myshop.example</p>
+        <p class="muted small" id="footerContactPhone">+880 1700-000000</p>
+        <p class="muted small" id="footerAddress">Dhaka, Bangladesh</p>
+      </div>
+    </div>
+    <div class="container footer-bottom muted small" id="footerCopyright">
+      © MY Shop • Shop Smart • Live Happy!
+    </div>
+  </footer>
+
+  <!-- Mobile Bottom Navigation Bar (Android / iOS Web Ergonomics) -->
+  <nav class="mobile-bottom-nav glass-panel mobile-only" id="mobileBottomNav">
+    <button type="button" class="mob-nav-btn active" data-nav="home">
+      <span>🏠</span><small data-i18n="home">Home</small>
+    </button>
+    <button type="button" class="mob-nav-btn" data-nav="categories">
+      <span>🗂️</span><small data-i18n="categories">Explore</small>
+    </button>
+    <button type="button" class="mob-nav-btn" data-nav="cart">
+      <span>🛒<b id="cartBadgeMob" class="mob-badge hidden">0</b></span><small data-i18n="cart">Cart</small>
+    </button>
+    <button type="button" class="mob-nav-btn" data-nav="wishlist">
+      <span>❤️</span><small data-i18n="wishlist">Wishlist</small>
+    </button>
+    <button type="button" class="mob-nav-btn" data-nav="profile">
+      <span>👤</span><small data-i18n="profile">Account</small>
+    </button>
+  </nav>
+
+  <!-- Modal Root (Product Details, Customer Auth, Checkout) -->
+  <div id="modalOverlay" class="modal-overlay hidden"></div>
+
+  <!-- 3D Animated Welcome Popup Root -->
+  <div id="welcomePopupRoot" class="popup-3d-overlay hidden"></div>
+
+  <!-- Floating Social Support Widget (+ <-> X) -->
+  <div id="floatingSocialRoot" class="floating-social-root"></div>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
