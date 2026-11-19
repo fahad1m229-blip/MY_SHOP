@@ -628,6 +628,120 @@ class MyShopFirestoreRepository(
                 }
             }
 
+    fun observeSocialSupportSettings(): Flow<SocialSupportSettings> =
+        db.collection("social_support_settings").document("main")
+            .snapshots()
+            .map { snap ->
+                if (!snap.exists()) {
+                    SocialSupportSettings()
+                } else {
+                    val defaults = SocialSupportSettings.defaultSocialPlatforms()
+                    @Suppress("UNCHECKED_CAST")
+                    val rawList = snap.get("platforms") as? List<Map<String, Any?>>
+                    val parsedPlatforms = if (rawList.isNullOrEmpty()) {
+                        defaults
+                    } else {
+                        defaults.map { fallback ->
+                            val match = rawList.firstOrNull {
+                                (it["id"] as? String)?.equals(fallback.id, ignoreCase = true) == true
+                            }
+                            if (match == null) fallback
+                            else fallback.copy(
+                                name = (match["name"] as? String)?.takeIf { it.isNotBlank() } ?: fallback.name,
+                                subtitle = (match["subtitle"] as? String) ?: fallback.subtitle,
+                                url = (match["url"] as? String).orEmpty().trim(),
+                                iconUrl = (match["iconUrl"] as? String).orEmpty().trim(),
+                                colorHex = (match["colorHex"] as? String)?.takeIf { it.isNotBlank() } ?: fallback.colorHex,
+                                enabled = (match["enabled"] as? Boolean) ?: fallback.enabled,
+                                sortOrder = (match["sortOrder"] as? Number)?.toInt() ?: fallback.sortOrder
+                            )
+                        }.sortedBy { it.sortOrder }
+                    }
+                    SocialSupportSettings(
+                        enabled = snap.getBoolean("enabled") ?: true,
+                        position = snap.getString("position") ?: "BOTTOM_RIGHT",
+                        buttonSize = snap.getBoolean("compact")?.let { if (it) "COMPACT" else "MEDIUM" }
+                            ?: (snap.getString("buttonSize") ?: "MEDIUM"),
+                        animationStyle = snap.getString("animationStyle") ?: "FLOAT_GLOW",
+                        menuBgHex = snap.getString("menuBgHex") ?: "#140F2A",
+                        primaryHex = snap.getString("primaryHex") ?: "#8B5CF6",
+                        welcomeText = snap.getString("welcomeText") ?: "Connect with MY Shop Support",
+                        platforms = parsedPlatforms
+                    )
+                }
+            }
+
+    fun observePopupNotices(): Flow<List<PopupNoticeConfig>> =
+        db.collection("popup_notices")
+            .snapshots()
+            .map { snap ->
+                snap.documents.mapNotNull { doc ->
+                    val title = doc.getString("title").orEmpty()
+                    if (title.isBlank()) return@mapNotNull null
+                    PopupNoticeConfig(
+                        id = doc.id,
+                        title = title,
+                        subtitle = doc.getString("subtitle") ?: "Shop Smart • Live Happy!",
+                        description = doc.getString("description")
+                            ?: "Join our official social communities and never miss exciting offers, updates and support.",
+                        imageUrl = doc.getString("imageUrl").orEmpty(),
+                        buttonText = doc.getString("buttonText") ?: "Join Our Community",
+                        buttonUrl = doc.getString("buttonUrl") ?: "/explore",
+                        designStyle = doc.getString("designStyle") ?: "NEON_GLASS",
+                        themeStyle = doc.getString("themeStyle") ?: "DARK_NEON",
+                        animation3D = doc.getString("animation3D") ?: "PERSPECTIVE_FLIP",
+                        bgHex = doc.getString("bgHex") ?: "#120B29",
+                        includeSocialButtons = doc.getBoolean("includeSocialButtons") ?: true,
+                        templateType = doc.getString("templateType") ?: "WELCOME_3D",
+                        frequency = doc.getString("frequency") ?: "ONCE_PER_SESSION",
+                        delaySeconds = (doc.get("delaySeconds") as? Number)?.toInt() ?: 1,
+                        durationSeconds = (doc.get("durationSeconds") as? Number)?.toInt() ?: 0,
+                        targetAudience = doc.getString("targetAudience") ?: "ALL",
+                        startDate = doc.getString("startDate").orEmpty(),
+                        endDate = doc.getString("endDate").orEmpty(),
+                        active = doc.getBoolean("active") ?: true
+                    )
+                }
+            }
+
+    fun observeAnnouncementSettings(): Flow<AnnouncementSettings?> =
+        db.collection("announcement_settings").document("main")
+            .snapshots()
+            .map { snap ->
+                if (!snap.exists()) null
+                else {
+                    val enabled = snap.getBoolean("enabled") ?: true
+                    val text = snap.getString("text").orEmpty()
+                    if (!enabled || text.isBlank()) null
+                    else AnnouncementSettings(
+                        enabled = enabled,
+                        text = text,
+                        badgeText = snap.getString("badgeText") ?: "FLASH DEAL",
+                        bgHex = snap.getString("bgHex") ?: "#8B5CF6",
+                        actionUrl = snap.getString("actionUrl").orEmpty()
+                    )
+                }
+            }
+
+    suspend fun incrementAnalyticsCounter(fieldName: String) {
+        val allowed = setOf("popupImpressions", "popupCloses", "fbClicks", "ytClicks", "ttClicks", "tgClicks")
+        if (!allowed.contains(fieldName)) return
+        try {
+            val ref = db.collection("analytics_counters").document("global")
+            ref.set(
+                mapOf(
+                    fieldName to FieldValue.increment(1),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ),
+                com.google.firebase.firestore.SetOptions.merge()
+            ).await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Best-effort non-blocking telemetry; never disrupt shopping UI
+        }
+    }
+
     // --- NOTIFICATIONS ---
     fun observeNotifications(userId: String): Flow<List<NotificationRecord>> =
         db.collection("users").document(userId).collection("notifications")

@@ -183,6 +183,79 @@
         "expiresLabel": { "type": "string" }
       },
       "required": ["code", "title", "discountType", "value", "minSpend", "expiresLabel"]
+    },
+    "SocialSupportSettings": {
+      "title": "SocialSupportSettings",
+      "description": "Admin-managed floating social support widget and 4 configurable social platform destinations.",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "position": { "type": "string", "enum": ["BOTTOM_RIGHT", "MID_RIGHT", "TOP_RIGHT"] },
+        "buttonSize": { "type": "string", "enum": ["COMPACT", "MEDIUM", "LARGE"] },
+        "animationStyle": { "type": "string", "enum": ["FLOAT_GLOW", "PULSE_ORBIT", "SPRING_3D"] },
+        "menuBgHex": { "type": "string" },
+        "primaryHex": { "type": "string" },
+        "welcomeText": { "type": "string" },
+        "platforms": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["enabled", "position", "buttonSize", "animationStyle", "platforms"]
+    },
+    "PopupNoticeConfig": {
+      "title": "PopupNoticeConfig",
+      "description": "Admin-managed 3D animated welcome or promotional popup notice.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "buttonText": { "type": "string" },
+        "buttonUrl": { "type": "string" },
+        "designStyle": { "type": "string" },
+        "themeStyle": { "type": "string" },
+        "animation3D": { "type": "string" },
+        "bgHex": { "type": "string" },
+        "includeSocialButtons": { "type": "boolean" },
+        "templateType": { "type": "string" },
+        "frequency": { "type": "string", "enum": ["EVERY_VISIT", "ONCE_PER_SESSION", "ONCE_PER_DAY", "ONCE_PER_WEEK", "ONCE_PER_USER"] },
+        "delaySeconds": { "type": "integer" },
+        "durationSeconds": { "type": "integer" },
+        "targetAudience": { "type": "string", "enum": ["ALL", "NEW_VISITORS"] },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "active": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "frequency", "targetAudience", "active"]
+    },
+    "AnnouncementSettings": {
+      "title": "AnnouncementSettings",
+      "description": "Admin-managed storefront top announcement banner settings.",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "text": { "type": "string" },
+        "badgeText": { "type": "string" },
+        "bgHex": { "type": "string" },
+        "actionUrl": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["enabled", "text"]
+    },
+    "AnalyticsCounters": {
+      "title": "AnalyticsCounters",
+      "description": "Privacy-safe non-PII aggregate counters for welcome popup views/closes and social support button clicks.",
+      "type": "object",
+      "properties": {
+        "popupImpressions": { "type": "integer" },
+        "popupCloses": { "type": "integer" },
+        "fbClicks": { "type": "integer" },
+        "ytClicks": { "type": "integer" },
+        "ttClicks": { "type": "integer" },
+        "tgClicks": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -193,6 +266,22 @@
     "/catalog_coupons/{couponCode}": {
       "schema": { "$ref": "#/entities/CatalogCoupon" },
       "description": "Shared MY Shop coupons managed via Firebase Admin SDK on Render backend (client read-only)."
+    },
+    "/social_support_settings/{configId}": {
+      "schema": { "$ref": "#/entities/SocialSupportSettings" },
+      "description": "Shared MY Shop floating social support settings managed via Admin backend (client read-only)."
+    },
+    "/popup_notices/{noticeId}": {
+      "schema": { "$ref": "#/entities/PopupNoticeConfig" },
+      "description": "Shared MY Shop 3D welcome & promo popup notices managed via Admin backend (client read-only)."
+    },
+    "/announcement_settings/{configId}": {
+      "schema": { "$ref": "#/entities/AnnouncementSettings" },
+      "description": "Shared MY Shop announcement banner config managed via Admin backend (client read-only)."
+    },
+    "/analytics_counters/{docId}": {
+      "schema": { "$ref": "#/entities/AnalyticsCounters" },
+      "description": "Aggregate non-PII counters incremented safely (+1 only) by clients and read by Admin backend."
     },
     "/fun_zone_config/{configId}": {
       "schema": { "$ref": "#/entities/CatalogCoupon" },

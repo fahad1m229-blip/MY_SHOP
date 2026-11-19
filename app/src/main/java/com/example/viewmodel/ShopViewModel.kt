@@ -107,8 +107,23 @@ class ShopViewModel(
     private val _adminAnnouncement = MutableStateFlow<Pair<String, String>?>(null)
     val adminAnnouncement: StateFlow<Pair<String, String>?> = _adminAnnouncement.asStateFlow()
 
+    private val _announcementSettings = MutableStateFlow<AnnouncementSettings?>(null)
+    val announcementSettings: StateFlow<AnnouncementSettings?> = _announcementSettings.asStateFlow()
+
+    private val _socialSupportSettings = MutableStateFlow(SocialSupportSettings())
+    val socialSupportSettings: StateFlow<SocialSupportSettings> = _socialSupportSettings.asStateFlow()
+
+    private val _allPopups = MutableStateFlow<List<PopupNoticeConfig>>(emptyList())
+    private val _hasLoadedPopups = MutableStateFlow(false)
+    private val _activeWelcomePopup = MutableStateFlow<PopupNoticeConfig?>(null)
+    val activeWelcomePopup: StateFlow<PopupNoticeConfig?> = _activeWelcomePopup.asStateFlow()
+
     private val _activePopups = MutableStateFlow<List<Pair<String, String>>>(emptyList())
     val activePopups: StateFlow<List<Pair<String, String>>> = _activePopups.asStateFlow()
+
+    private val shownPopupIdsThisSession = mutableSetOf<String>()
+    private val impressionRecordedIds = mutableSetOf<String>()
+    private var popupTriggerJob: Job? = null
 
     private val _isUploadingAvatar = MutableStateFlow(false)
     val isUploadingAvatar: StateFlow<Boolean> = _isUploadingAvatar.asStateFlow()
@@ -128,6 +143,48 @@ class ShopViewModel(
             while (true) {
                 delay(1000L)
                 _flashCountdownSeconds.update { if (it > 0) it - 1 else 5 * 3600L }
+            }
+        }
+
+        // Public shared CMS streams (always active for Guests & Signed-In customers)
+        viewModelScope.launch {
+            firestoreRepo.observeAdminCoupons()
+                .catch { Log.w("ShopViewModel", "Coupons stream: ${it.message}") }
+                .collect { _adminCoupons.value = it }
+        }
+        viewModelScope.launch {
+            firestoreRepo.observeSiteConfig()
+                .catch { Log.w("ShopViewModel", "SiteConfig stream: ${it.message}") }
+                .collect { _adminAnnouncement.value = it }
+        }
+        viewModelScope.launch {
+            firestoreRepo.observeAnnouncementSettings()
+                .catch { Log.w("ShopViewModel", "Announcements stream: ${it.message}") }
+                .collect { _announcementSettings.value = it }
+        }
+        viewModelScope.launch {
+            firestoreRepo.observeSocialSupportSettings()
+                .catch { Log.w("ShopViewModel", "SocialSupport stream: ${it.message}") }
+                .collect { _socialSupportSettings.value = it }
+        }
+        viewModelScope.launch {
+            firestoreRepo.observePopupNotices()
+                .catch {
+                    Log.w("ShopViewModel", "PopupNotices stream: ${it.message}")
+                    _hasLoadedPopups.value = true
+                }
+                .collect { notices ->
+                    _allPopups.value = notices
+                    _activePopups.value = notices.filter { it.active }.map { it.title to it.description }
+                    _hasLoadedPopups.value = true
+                }
+        }
+        viewModelScope.launch {
+            combine(_hasLoadedPopups, _allPopups, localPrefs) { loaded, notices, prefs ->
+                Triple(loaded, notices, prefs)
+            }.collect { (loaded, notices, prefs) ->
+                if (!loaded || _activeWelcomePopup.value != null) return@collect
+                evaluatePopupEligibility(notices, prefs)
             }
         }
     }
@@ -293,21 +350,6 @@ class ShopViewModel(
                     .catch { handleStreamError("reviews", it) }
                     .collect { _userReviews.value = it }
             }
-            launch {
-                firestoreRepo.observeAdminCoupons()
-                    .catch { handleStreamError("catalog_coupons", it) }
-                    .collect { _adminCoupons.value = it }
-            }
-            launch {
-                firestoreRepo.observeSiteConfig()
-                    .catch { handleStreamError("site_config", it) }
-                    .collect { _adminAnnouncement.value = it }
-            }
-            launch {
-                firestoreRepo.observeActivePopups()
-                    .catch { handleStreamError("popup_notices", it) }
-                    .collect { _activePopups.value = it }
-            }
         }
     }
 
@@ -373,6 +415,72 @@ class ShopViewModel(
 
     fun dismissAuthPrompt() {
         _showAuthPrompt.value = null
+    }
+
+    // --- SOCIAL SUPPORT & 3D WELCOME POPUP ---
+    private fun evaluatePopupEligibility(notices: List<PopupNoticeConfig>, prefs: LocalAppPrefs) {
+        val candidates = if (notices.isEmpty()) listOf(PopupNoticeConfig()) else notices
+        val today = todayKey()
+        val now = System.currentTimeMillis()
+        val eligible = candidates.firstOrNull { popup ->
+            if (!popup.active) return@firstOrNull false
+            if (popup.targetAudience == "NEW_VISITORS" && prefs.hasVisitedBefore) return@firstOrNull false
+            if (popup.startDate.isNotBlank() && today < popup.startDate) return@firstOrNull false
+            if (popup.endDate.isNotBlank() && today > popup.endDate) return@firstOrNull false
+            if (shownPopupIdsThisSession.contains(popup.id)) return@firstOrNull false
+
+            val lastDismissed = prefs.popupDismissals[popup.id] ?: 0L
+            when (popup.frequency) {
+                "EVERY_VISIT" -> true
+                "ONCE_PER_SESSION" -> !shownPopupIdsThisSession.contains(popup.id)
+                "ONCE_PER_DAY" -> now - lastDismissed >= 24L * 60L * 60L * 1000L
+                "ONCE_PER_WEEK" -> now - lastDismissed >= 7L * 24L * 60L * 60L * 1000L
+                "ONCE_PER_USER" -> lastDismissed == 0L
+                else -> true
+            }
+        } ?: return
+
+        if (popupTriggerJob?.isActive == true) return
+        popupTriggerJob = viewModelScope.launch {
+            val waitMs = (eligible.delaySeconds.coerceIn(0, 30)) * 1000L
+            if (waitMs > 0) delay(waitMs)
+            if (_activeWelcomePopup.value != null) return@launch
+            shownPopupIdsThisSession.add(eligible.id)
+            _activeWelcomePopup.value = eligible
+            if (impressionRecordedIds.add(eligible.id)) {
+                firestoreRepo.incrementAnalyticsCounter("popupImpressions")
+            }
+            if (eligible.durationSeconds > 0) {
+                delay(eligible.durationSeconds * 1000L)
+                if (_activeWelcomePopup.value?.id == eligible.id) {
+                    dismissWelcomePopup(eligible.id, recordCloseAnalytics = false)
+                }
+            }
+        }
+    }
+
+    fun dismissWelcomePopup(popupId: String, recordCloseAnalytics: Boolean = true) {
+        shownPopupIdsThisSession.add(popupId)
+        _activeWelcomePopup.value = null
+        viewModelScope.launch {
+            prefsStore.recordPopupDismissal(popupId, System.currentTimeMillis())
+            if (recordCloseAnalytics) {
+                firestoreRepo.incrementAnalyticsCounter("popupCloses")
+            }
+        }
+    }
+
+    fun trackSocialPlatformClick(platformId: String) {
+        val field = when (platformId.lowercase()) {
+            "facebook" -> "fbClicks"
+            "youtube" -> "ytClicks"
+            "tiktok" -> "ttClicks"
+            "telegram" -> "tgClicks"
+            else -> return
+        }
+        viewModelScope.launch {
+            firestoreRepo.incrementAnalyticsCounter(field)
+        }
     }
 
     // --- SEARCH & FILTERING ---

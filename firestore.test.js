@@ -266,6 +266,8 @@ test("Shared Admin-managed catalog/coupons/site_config/popups are client read-on
   await assertSucceeds(aliceDb.collection("catalog_coupons").get());
   await assertSucceeds(unauthDb.collection("site_config").doc("main").get());
   await assertSucceeds(unauthDb.collection("popup_notices").get());
+  await assertSucceeds(unauthDb.collection("social_support_settings").doc("main").get());
+  await assertSucceeds(unauthDb.collection("announcement_settings").doc("main").get());
   await assertSucceeds(unauthDb.collection("fun_zone_config").get());
   await assertSucceeds(unauthDb.collection("ai_settings").doc("main").get());
 
@@ -281,6 +283,32 @@ test("Shared Admin-managed catalog/coupons/site_config/popups are client read-on
   );
   await assertFails(
     unauthDb.collection("popup_notices").doc("p1").set({ title: "Spam" })
+  );
+  await assertFails(
+    aliceDb.collection("social_support_settings").doc("main").set({ enabled: false })
+  );
+  await assertFails(
+    unauthDb.collection("announcement_settings").doc("main").set({ text: "Spam" })
+  );
+
+  // Privacy-safe analytics counter allows +1 increment only, rejects bulk/negative writes
+  await assertSucceeds(
+    unauthDb.collection("analytics_counters").doc("global").set({
+      popupImpressions: 1,
+      updatedAt: new Date(Date.now() - 1000),
+    })
+  );
+  await assertSucceeds(
+    unauthDb.collection("analytics_counters").doc("global").update({
+      fbClicks: 1,
+      updatedAt: new Date(Date.now() - 500),
+    })
+  );
+  await assertFails(
+    unauthDb.collection("analytics_counters").doc("global").update({
+      fbClicks: 500,
+      updatedAt: new Date(Date.now() - 200),
+    })
   );
 
   // Backend-only Admin SDK collections must reject all client reads and writes

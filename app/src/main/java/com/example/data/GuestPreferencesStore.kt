@@ -31,7 +31,9 @@ data class LocalAppPrefs(
     val claimedChallengeIds: Set<String> = emptySet(),
     val exploredCategories: Set<String> = emptySet(),
     val askedAiCount: Int = 0,
-    val guestWonCoupons: List<String> = emptyList()
+    val guestWonCoupons: List<String> = emptyList(),
+    val popupDismissals: Map<String, Long> = emptyMap(),
+    val hasVisitedBefore: Boolean = false
 )
 
 class GuestPreferencesStore(private val context: Context) {
@@ -53,6 +55,8 @@ class GuestPreferencesStore(private val context: Context) {
         val EXPLORED_CATEGORIES = stringPreferencesKey("explored_categories")
         val ASKED_AI_COUNT = intPreferencesKey("asked_ai_count")
         val GUEST_COUPONS = stringPreferencesKey("guest_coupons")
+        val POPUP_DISMISSALS_JSON = stringPreferencesKey("popup_dismissals_json")
+        val HAS_VISITED_BEFORE = booleanPreferencesKey("has_visited_before")
     }
 
     val prefsFlow: Flow<LocalAppPrefs> = context.myShopDataStore.data.map { prefs ->
@@ -72,7 +76,9 @@ class GuestPreferencesStore(private val context: Context) {
             claimedChallengeIds = decodeSet(prefs[Keys.CLAIMED_CHALLENGES]),
             exploredCategories = decodeSet(prefs[Keys.EXPLORED_CATEGORIES]),
             askedAiCount = prefs[Keys.ASKED_AI_COUNT] ?: 0,
-            guestWonCoupons = decodeList(prefs[Keys.GUEST_COUPONS])
+            guestWonCoupons = decodeList(prefs[Keys.GUEST_COUPONS]),
+            popupDismissals = decodePopupDismissals(prefs[Keys.POPUP_DISMISSALS_JSON].orEmpty()),
+            hasVisitedBefore = prefs[Keys.HAS_VISITED_BEFORE] ?: false
         )
     }
 
@@ -183,6 +189,40 @@ class GuestPreferencesStore(private val context: Context) {
     suspend fun addGuestPoints(points: Int) {
         context.myShopDataStore.edit { prefs ->
             prefs[Keys.GUEST_POINTS] = (prefs[Keys.GUEST_POINTS] ?: 100) + points
+        }
+    }
+
+    suspend fun recordPopupDismissal(popupId: String, timestampMs: Long) {
+        context.myShopDataStore.edit { prefs ->
+            val current = decodePopupDismissals(prefs[Keys.POPUP_DISMISSALS_JSON].orEmpty()).toMutableMap()
+            current[popupId] = timestampMs
+            val json = JSONObject().apply {
+                current.forEach { (k, v) -> put(k, v) }
+            }.toString()
+            prefs[Keys.POPUP_DISMISSALS_JSON] = json
+            prefs[Keys.HAS_VISITED_BEFORE] = true
+        }
+    }
+
+    suspend fun markVisited() {
+        context.myShopDataStore.edit { prefs ->
+            prefs[Keys.HAS_VISITED_BEFORE] = true
+        }
+    }
+
+    private fun decodePopupDismissals(raw: String): Map<String, Long> {
+        if (raw.isBlank()) return emptyMap()
+        return try {
+            val obj = JSONObject(raw)
+            val result = mutableMapOf<String, Long>()
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                result[key] = obj.optLong(key, 0L)
+            }
+            result
+        } catch (_: Exception) {
+            emptyMap()
         }
     }
 

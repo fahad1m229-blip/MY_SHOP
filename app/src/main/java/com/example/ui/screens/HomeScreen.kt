@@ -32,8 +32,11 @@ import com.example.data.CatalogRepository
 import com.example.data.LocalAppPrefs
 import com.example.i18n.AppLanguage
 import com.example.i18n.AppStrings
+import com.example.model.AnnouncementSettings
 import com.example.model.CategoryId
 import com.example.model.Product
+import com.example.model.isSafeExternalUrl
+import com.example.model.parseHexColor
 import com.example.ui.components.*
 import com.example.ui.theme.LocalMyShopColors
 
@@ -56,7 +59,8 @@ fun HomeScreen(
     onDiscoverTreasure: (String, String, String, Int) -> Unit,
     onSignInClick: () -> Unit,
     adminAnnouncement: Pair<String, String>? = null,
-    activePopups: List<Pair<String, String>> = emptyList()
+    activePopups: List<Pair<String, String>> = emptyList(),
+    announcementSettings: AnnouncementSettings? = null
 ) {
     val ext = LocalMyShopColors.current
     var searchInput by remember { mutableStateOf("") }
@@ -93,26 +97,49 @@ fun HomeScreen(
         contentPadding = PaddingValues(bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        // Admin-Synced Live Announcement / Popup Notice (from shared Firestore database)
-        if (adminAnnouncement != null || activePopups.isNotEmpty()) {
+        // Admin-Synced Live Announcement Banner (from shared Firestore announcement_settings / site_config)
+        val bannerText = announcementSettings?.text?.takeIf { announcementSettings.enabled && it.isNotBlank() }
+            ?: adminAnnouncement?.second?.takeIf { it.isNotBlank() }
+        if (bannerText != null) {
             item {
-                val title = activePopups.firstOrNull()?.first ?: adminAnnouncement?.first.orEmpty()
-                val body = activePopups.firstOrNull()?.second?.ifBlank { adminAnnouncement?.second.orEmpty() }
-                    ?: adminAnnouncement?.second.orEmpty()
+                val badgeLabel = announcementSettings?.badgeText?.takeIf { it.isNotBlank() }
+                    ?: adminAnnouncement?.first?.ifBlank { "LIVE" }
+                    ?: "LIVE"
+                val accent = parseHexColor(announcementSettings?.bgHex, ext.neonPurple)
+                val actionUrl = announcementSettings?.actionUrl.orEmpty()
+                val context = androidx.compose.ui.platform.LocalContext.current
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .then(
+                            if (actionUrl.isNotBlank()) {
+                                Modifier.clickable {
+                                    if (isSafeExternalUrl(actionUrl)) {
+                                        runCatching {
+                                            context.startActivity(
+                                                android.content.Intent(
+                                                    android.content.Intent.ACTION_VIEW,
+                                                    android.net.Uri.parse(actionUrl)
+                                                ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            )
+                                        }
+                                    } else {
+                                        onSearchSubmit("")
+                                    }
+                                }
+                            } else Modifier
+                        ),
                     shape = RoundedCornerShape(14.dp),
-                    color = ext.neonPurple.copy(alpha = 0.16f),
-                    border = BorderStroke(1.dp, ext.neonPurple.copy(alpha = 0.5f))
+                    color = accent.copy(alpha = 0.16f),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.5f))
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Campaign, contentDescription = null, tint = ext.hotPink, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                            if (body.isNotBlank()) {
-                                Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                            Text(badgeLabel, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            Text(bannerText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

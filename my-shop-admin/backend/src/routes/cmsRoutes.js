@@ -3,6 +3,13 @@ const { admin, getDb } = require("../config/firebase");
 const { requireAdminAuth } = require("../middleware/auth");
 const { isValidHttpUrl, sanitizeId, toSafeNumber, toIsoDate } = require("../middleware/validate");
 const { logAdminAudit } = require("../services/auditService");
+const {
+  defaultSocialSupportSettings,
+  normalizeSocialSupportPayload,
+  defaultAnnouncementSettings,
+  normalizeAnnouncementPayload,
+  normalizePopupPayload,
+} = require("../services/socialPopupDefaults");
 
 const router = express.Router();
 router.use(requireAdminAuth);
@@ -71,6 +78,138 @@ router.put("/site-config", async (req, res, next) => {
   }
 });
 
+// ======================== SOCIAL SUPPORT MANAGER (social_support_settings) ========================
+
+router.get("/social-support", async (_req, res, next) => {
+  try {
+    const db = getDb();
+    const [mainSnap, draftSnap] = await Promise.all([
+      db.collection("social_support_settings").doc("main").get(),
+      db.collection("social_support_settings").doc("draft").get(),
+    ]);
+    const publishedData = mainSnap.exists ? mainSnap.data() : defaultSocialSupportSettings();
+    const draftData = draftSnap.exists ? draftSnap.data() : publishedData;
+    res.json({
+      settings: draftData,
+      publishedSettings: publishedData,
+      hasPublished: mainSnap.exists,
+      hasDraftChanges: draftSnap.exists && Boolean(draftData.unpublishedDraft),
+      updatedAt: toIsoDate(draftData.updatedAt),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/social-support", async (req, res, next) => {
+  try {
+    const normalized = normalizeSocialSupportPayload(req.body || {});
+    const publishNow = Boolean(req.body?.publish);
+    const db = getDb();
+    const draftPayload = {
+      ...normalized,
+      published: publishNow,
+      unpublishedDraft: !publishNow,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await db.collection("social_support_settings").doc("draft").set(draftPayload, { merge: true });
+    if (publishNow) {
+      await db
+        .collection("social_support_settings")
+        .doc("main")
+        .set(
+          {
+            ...normalized,
+            published: true,
+            unpublishedDraft: false,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+    }
+    await logAdminAudit(
+      req,
+      publishNow ? "SOCIAL_SUPPORT_PUBLISH" : "SOCIAL_SUPPORT_DRAFT_SAVE",
+      publishNow ? "social_support_settings/main" : "social_support_settings/draft",
+      { enabled: normalized.enabled, position: normalized.position }
+    );
+    res.json({ ok: true, published: publishNow, settings: normalized });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/social-support/publish", async (req, res, next) => {
+  try {
+    const hasBodyPayload = req.body && Object.keys(req.body).length > 0;
+    const preValidated = hasBodyPayload ? normalizeSocialSupportPayload(req.body) : null;
+    const db = getDb();
+    let payload = preValidated;
+    if (!payload) {
+      const draftSnap = await db.collection("social_support_settings").doc("draft").get();
+      payload = draftSnap.exists
+        ? normalizeSocialSupportPayload(draftSnap.data())
+        : defaultSocialSupportSettings();
+    }
+    const finalDoc = {
+      ...payload,
+      published: true,
+      unpublishedDraft: false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await Promise.all([
+      db.collection("social_support_settings").doc("main").set(finalDoc, { merge: true }),
+      db.collection("social_support_settings").doc("draft").set(finalDoc, { merge: true }),
+    ]);
+    await logAdminAudit(req, "SOCIAL_SUPPORT_PUBLISH", "social_support_settings/main", {
+      enabled: payload.enabled,
+      platformsEnabled: payload.platforms.filter((p) => p.enabled).map((p) => p.id),
+    });
+    res.json({ ok: true, published: true, settings: payload });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ======================== ANNOUNCEMENT BAR (announcement_settings/main) ========================
+
+router.get("/announcements", async (_req, res, next) => {
+  try {
+    const snap = await getDb().collection("announcement_settings").doc("main").get();
+    res.json(snap.exists ? snap.data() : defaultAnnouncementSettings());
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/announcements", async (req, res, next) => {
+  try {
+    const normalized = normalizeAnnouncementPayload(req.body || {});
+    const db = getDb();
+    const payload = {
+      ...normalized,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await Promise.all([
+      db.collection("announcement_settings").doc("main").set(payload, { merge: true }),
+      db.collection("site_config").doc("main").set(
+        {
+          announcementText: normalized.text,
+          announcementActive: normalized.enabled,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      ),
+    ]);
+    await logAdminAudit(req, "ANNOUNCEMENT_UPDATE", "announcement_settings/main", {
+      enabled: normalized.enabled,
+    });
+    res.json({ ok: true, ...normalized });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ======================== POPUP NOTICES (popup_notices) ========================
 
 router.get("/popups", async (_req, res, next) => {
@@ -89,29 +228,19 @@ router.get("/popups", async (_req, res, next) => {
 
 router.post("/popups", async (req, res, next) => {
   try {
-    const b = req.body || {};
-    if (!b.title || !String(b.title).trim()) {
-      return res.status(400).json({ error: "Popup title is required." });
-    }
-    const id = b.id ? sanitizeId(b.id, "popup") : `popup_${Date.now()}`;
+    const normalized = normalizePopupPayload(req.body || {});
+    const id = req.body?.id ? sanitizeId(req.body.id, "popup") : `popup_${Date.now()}`;
     const payload = {
-      title: String(b.title).trim().slice(0, 120),
-      description: String(b.description || "").trim().slice(0, 600),
-      imageUrl: isValidHttpUrl(b.imageUrl) ? b.imageUrl.trim() : "",
-      buttonText: String(b.buttonText || "Shop Now").trim().slice(0, 40),
-      buttonUrl: String(b.buttonUrl || "/explore").trim().slice(0, 300),
-      designStyle: String(b.designStyle || "NEON_GLASS").trim(),
-      startDate: String(b.startDate || "").trim(),
-      endDate: String(b.endDate || "").trim(),
-      frequency: String(b.frequency || "ONCE_PER_SESSION").trim(),
-      durationSeconds: Math.round(toSafeNumber(b.durationSeconds, 0, 0, 300)),
-      targetAudience: String(b.targetAudience || "ALL").trim(),
-      active: b.active !== false,
+      ...normalized,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     await getDb().collection("popup_notices").doc(id).set(payload, { merge: true });
-    await logAdminAudit(req, "POPUP_UPSERT", `popup_notices/${id}`, { title: payload.title, active: payload.active });
-    res.status(201).json({ id, ...payload });
+    await logAdminAudit(req, "POPUP_UPSERT", `popup_notices/${id}`, {
+      title: payload.title,
+      active: payload.active,
+      frequency: payload.frequency,
+    });
+    res.status(201).json({ id, ...normalized });
   } catch (err) {
     next(err);
   }
@@ -123,6 +252,38 @@ router.delete("/popups/:id", async (req, res, next) => {
     await getDb().collection("popup_notices").doc(id).delete();
     await logAdminAudit(req, "POPUP_DELETE", `popup_notices/${id}`);
     res.json({ deleted: true, id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ======================== ENGAGEMENT ANALYTICS (analytics_counters/global) ========================
+
+router.get("/analytics", async (_req, res, next) => {
+  try {
+    const snap = await getDb().collection("analytics_counters").doc("global").get();
+    const data = snap.exists ? snap.data() : {};
+    const popupImpressions = Number(data.popupImpressions || 0);
+    const popupCloses = Number(data.popupCloses || 0);
+    const fbClicks = Number(data.fbClicks || 0);
+    const ytClicks = Number(data.ytClicks || 0);
+    const ttClicks = Number(data.ttClicks || 0);
+    const tgClicks = Number(data.tgClicks || 0);
+    const totalSocialClicks = fbClicks + ytClicks + ttClicks + tgClicks;
+    const closeRatePercent =
+      popupImpressions > 0 ? Math.min(100, Math.round((popupCloses / popupImpressions) * 100)) : 0;
+
+    res.json({
+      popupImpressions,
+      popupCloses,
+      closeRatePercent,
+      fbClicks,
+      ytClicks,
+      ttClicks,
+      tgClicks,
+      totalSocialClicks,
+      updatedAt: toIsoDate(data.updatedAt),
+    });
   } catch (err) {
     next(err);
   }

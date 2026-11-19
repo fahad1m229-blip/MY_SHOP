@@ -35,7 +35,9 @@ import com.example.data.GuestPreferencesStore
 import com.example.data.MyShopFirestoreRepository
 import com.example.i18n.stringsFor
 import com.example.ui.components.AuthGateBottomSheet
+import com.example.ui.components.FloatingSocialSupportMenu
 import com.example.ui.components.MyShopTopHeader
+import com.example.ui.components.Welcome3DPopupModal
 import com.example.ui.screens.*
 import com.example.ui.theme.LocalMyShopColors
 import com.example.ui.theme.MyShopTheme
@@ -140,7 +142,10 @@ fun MyShopAppRoot() {
     val authPromptReason by shopViewModel.showAuthPrompt.collectAsStateWithLifecycle()
     val isUploadingAvatar by shopViewModel.isUploadingAvatar.collectAsStateWithLifecycle()
     val adminAnnouncement by shopViewModel.adminAnnouncement.collectAsStateWithLifecycle()
+    val announcementSettings by shopViewModel.announcementSettings.collectAsStateWithLifecycle()
     val activePopups by shopViewModel.activePopups.collectAsStateWithLifecycle()
+    val socialSupportSettings by shopViewModel.socialSupportSettings.collectAsStateWithLifecycle()
+    val activeWelcomePopup by shopViewModel.activeWelcomePopup.collectAsStateWithLifecycle()
 
     val aiMessages by aiViewModel.messages.collectAsStateWithLifecycle()
     val aiUiState by aiViewModel.uiState.collectAsStateWithLifecycle()
@@ -279,11 +284,16 @@ fun MyShopAppRoot() {
                         }
                     }
                 ) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = Routes.HOME,
-                        modifier = Modifier.padding(innerPadding)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
                     ) {
+                        NavHost(
+                            navController = navController,
+                            startDestination = Routes.HOME,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
                         composable(Routes.HOME) {
                             HomeScreen(
                                 strings = strings,
@@ -319,7 +329,8 @@ fun MyShopAppRoot() {
                                     shopViewModel.requestAuth("Sign in with Google to unlock synced carts, orders, and exclusive rewards.")
                                 },
                                 adminAnnouncement = adminAnnouncement,
-                                activePopups = activePopups
+                                activePopups = activePopups,
+                                announcementSettings = announcementSettings
                             )
                         }
 
@@ -575,8 +586,44 @@ fun MyShopAppRoot() {
                                 }
                             )
                         }
+                        }
+
+                        // Responsive Floating Social Support Widget (+ -> X with staggered platforms)
+                        val hasBottomActionBar = currentRoute == Routes.CART ||
+                            currentRoute == Routes.CHECKOUT ||
+                            currentRoute == Routes.PRODUCT_DETAIL ||
+                            currentRoute == Routes.AI_ASSISTANT
+                        FloatingSocialSupportMenu(
+                            settings = socialSupportSettings,
+                            extraBottomPadding = if (hasBottomActionBar) 88.dp else 16.dp,
+                            onTrackClick = { pid -> shopViewModel.trackSocialPlatformClick(pid) },
+                            onFeedback = { msg -> shopViewModel.showMessage(msg) }
+                        )
                     }
                 }
+            }
+
+            // 3D Animated Welcome Popup Modal (Controlled by Admin Settings & Frequency rules)
+            activeWelcomePopup?.let { popup ->
+                Welcome3DPopupModal(
+                    popup = popup,
+                    socialSettings = socialSupportSettings,
+                    onDismiss = { shopViewModel.dismissWelcomePopup(popup.id) },
+                    onTrackSocialClick = { pid -> shopViewModel.trackSocialPlatformClick(pid) },
+                    onNavigateRoute = { dest ->
+                        val targetRoute = when {
+                            dest.contains("fun", ignoreCase = true) -> Routes.FUN_ZONE
+                            dest.contains("ai", ignoreCase = true) -> Routes.AI_ASSISTANT
+                            dest.contains("cart", ignoreCase = true) -> Routes.CART
+                            dest.contains("support", ignoreCase = true) -> Routes.SUPPORT
+                            else -> Routes.EXPLORE
+                        }
+                        navController.navigate(targetRoute) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onFeedback = { msg -> shopViewModel.showMessage(msg) }
+                )
             }
 
             // Auth Gate Modal Sheet (Only appears when guest attempts Checkout / Wishlist sync / Review / Account)

@@ -15,6 +15,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const customerRoutes = require("./routes/customerRoutes");
 const marketingRoutes = require("./routes/marketingRoutes");
 const cmsRoutes = require("./routes/cmsRoutes");
+const publicRoutes = require("./routes/publicRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 
 function createApp() {
@@ -64,6 +65,7 @@ function createApp() {
   app.use("/api/admin/marketing", marketingRoutes);
   app.use("/api/admin/cms", cmsRoutes);
   app.use("/api/admin/settings", settingsRoutes);
+  app.use("/api/public", publicRoutes);
 
   // Serve Admin Panel Frontend SPA (ZERO Firebase Client SDK in frontend)
   const frontendDir = path.resolve(__dirname, "../../frontend");

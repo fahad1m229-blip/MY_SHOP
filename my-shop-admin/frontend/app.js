@@ -19,6 +19,13 @@ const state = {
   funZone: {},
   aiSettings: {},
   siteConfig: {},
+  socialSupport: null,
+  socialMeta: {},
+  announcementConfig: {},
+  engagementAnalytics: {},
+  previewDevice: "mobile",
+  previewSocialOpen: true,
+  editingPopupId: null,
   popups: [],
   sellers: [],
   deliveryZones: [],
@@ -172,11 +179,37 @@ async function loadTab(tab) {
         document.getElementById("pageTitle").textContent = "Website Customization";
         renderCms(ws);
         break;
-      case "popups":
-        state.popups = (await api("/api/admin/cms/popups")).items || [];
-        document.getElementById("pageTitle").textContent = "Popup Notice & Announcement Manager";
+      case "social": {
+        const [socRes, anRes] = await Promise.all([
+          api("/api/admin/cms/social-support"),
+          api("/api/admin/cms/analytics"),
+        ]);
+        state.socialSupport = socRes.settings;
+        state.socialMeta = {
+          hasPublished: socRes.hasPublished,
+          hasDraftChanges: socRes.hasDraftChanges,
+          updatedAt: socRes.updatedAt,
+        };
+        state.engagementAnalytics = anRes || {};
+        document.getElementById("pageTitle").textContent = "Social Support Manager";
+        renderSocialSupport(ws);
+        break;
+      }
+      case "popups": {
+        const [popRes, annRes, anRes, socRes] = await Promise.all([
+          api("/api/admin/cms/popups"),
+          api("/api/admin/cms/announcements"),
+          api("/api/admin/cms/analytics"),
+          api("/api/admin/cms/social-support"),
+        ]);
+        state.popups = popRes.items || [];
+        state.announcementConfig = annRes || {};
+        state.engagementAnalytics = anRes || {};
+        state.socialSupport = socRes.settings;
+        document.getElementById("pageTitle").textContent = "3D Welcome Popup & Announcement Manager";
         renderPopups(ws);
         break;
+      }
       case "sellers": {
         const [sRes, dRes] = await Promise.all([
           api("/api/admin/settings/sellers"),
@@ -1042,36 +1075,608 @@ function renderCms(ws) {
   });
 }
 
-function renderPopups(ws) {
-  ws.innerHTML = `<div class="card"><h3>Create Popup Notice</h3><form id="popForm" class="stack-form">
-    <div class="form-grid">
-      <label><span>Title *</span><input id="popTitle" required placeholder="Eid Cyber Mega Sale!" /></label>
-      <label><span>Button Text</span><input id="popBtn" value="Shop Flash Deals" /></label>
-      <label><span>Button Destination</span><input id="popUrl" value="/explore" /></label>
-      <label><span>Image URL</span><input id="popImg" placeholder="https://…" /></label>
+function defaultSocialPlatformsFallback() {
+  return [
+    { id: "facebook", name: "Facebook Support", subtitle: "Message us on Facebook", url: "", iconUrl: "", colorHex: "#1877F2", enabled: true, sortOrder: 1 },
+    { id: "youtube", name: "YouTube Support", subtitle: "Product demos & guides", url: "", iconUrl: "", colorHex: "#FF0000", enabled: true, sortOrder: 2 },
+    { id: "tiktok", name: "TikTok Support", subtitle: "Trending flash clips", url: "", iconUrl: "", colorHex: "#FE2C55", enabled: true, sortOrder: 3 },
+    { id: "telegram", name: "Telegram Support", subtitle: "Fast VIP community", url: "", iconUrl: "", colorHex: "#26A5E4", enabled: true, sortOrder: 4 },
+  ];
+}
+
+function platformGlyph(id) {
+  switch (id) {
+    case "facebook": return "f";
+    case "youtube": return "▶";
+    case "tiktok": return "♪";
+    case "telegram": return "✈";
+    default: return "★";
+  }
+}
+
+function collectSocialSupportForm() {
+  const base = state.socialSupport || { platforms: defaultSocialPlatformsFallback() };
+  const platforms = (base.platforms || defaultSocialPlatformsFallback()).map((p, idx) => ({
+    id: p.id,
+    name: document.getElementById(`soc_name_${p.id}`)?.value || p.name,
+    subtitle: document.getElementById(`soc_sub_${p.id}`)?.value || "",
+    url: document.getElementById(`soc_url_${p.id}`)?.value || "",
+    iconUrl: document.getElementById(`soc_icon_${p.id}`)?.value || "",
+    colorHex: document.getElementById(`soc_col_${p.id}`)?.value || p.colorHex,
+    enabled: Boolean(document.getElementById(`soc_en_${p.id}`)?.checked),
+    sortOrder: idx + 1,
+  }));
+
+  return {
+    enabled: Boolean(document.getElementById("socEnabled")?.checked),
+    position: document.getElementById("socPos")?.value || "BOTTOM_RIGHT",
+    buttonSize: document.getElementById("socSize")?.value || "MEDIUM",
+    animationStyle: document.getElementById("socAnim")?.value || "FLOAT_GLOW",
+    primaryHex: document.getElementById("socPrimaryHex")?.value || "#8B5CF6",
+    menuBgHex: document.getElementById("socMenuBgHex")?.value || "#140F2A",
+    welcomeText: document.getElementById("socWelcomeText")?.value || "",
+    platforms,
+  };
+}
+
+function updateSocialPreviewStage() {
+  const stage = document.getElementById("socialPreviewStage");
+  if (!stage) return;
+  const cfg = collectSocialSupportForm();
+  state.socialSupport = cfg;
+  stage.className = `preview-stage ${state.previewDevice}`;
+  const enabledPlatforms = cfg.platforms.filter((p) => p.enabled);
+
+  stage.innerHTML = `
+    <div class="preview-mockup-bar">
+      <span>MY Shop (${state.previewDevice === "mobile" ? "Android 390px" : "Desktop 1280px"})</span>
+      <span>${cfg.enabled ? "Floating Widget: ON" : "Floating Widget: OFF"}</span>
     </div>
-    <label><span>Description</span><textarea id="popDesc" rows="2"></textarea></label>
-    <button type="submit" class="btn-neon">Publish Popup Notice</button>
-  </form><hr class="divider"/>
-  <div>${state.popups.map((p) => `<div class="card" style="margin-top:8px;"><strong>${escHtml(p.title)}</strong> (${p.active ? "Active" : "Inactive"})<p class="muted">${escHtml(p.description)}</p><button class="btn-danger small" onclick="delPopup('${escHtml(p.id)}')">Delete</button></div>`).join("")}</div></div>`;
-  document.getElementById("popForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    await api("/api/admin/cms/popups", {
-      method: "POST",
-      body: JSON.stringify({
-        title: document.getElementById("popTitle").value,
-        description: document.getElementById("popDesc").value,
-        buttonText: document.getElementById("popBtn").value,
-        buttonUrl: document.getElementById("popUrl").value,
-        imageUrl: document.getElementById("popImg").value,
-        active: true,
-      }),
-    });
-    toast("Popup notice published!");
-    loadTab("popups");
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;opacity:0.48;pointer-events:none;">
+      <div style="height:46px;border-radius:12px;background:rgba(139,92,246,0.22);border:1px solid rgba(255,255,255,0.12);"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="height:92px;border-radius:12px;background:rgba(0,212,255,0.12);"></div>
+        <div style="height:92px;border-radius:12px;background:rgba(255,46,147,0.12);"></div>
+      </div>
+    </div>
+    ${cfg.enabled ? `
+      <div class="fab-preview-anchor ${escHtml(cfg.position)}">
+        ${state.previewSocialOpen ? `
+          <div class="fab-menu-stack" style="background:${escHtml(cfg.menuBgHex)}cc;padding:8px;border-radius:16px;border:1px solid rgba(0,212,255,0.35);">
+            ${cfg.welcomeText ? `<small style="color:#cbd5e1;font-size:0.7rem;padding:0 4px;">${escHtml(cfg.welcomeText)}</small>` : ""}
+            ${enabledPlatforms.map((p, idx) => `
+              <div class="fab-social-pill" style="background:${escHtml(p.colorHex)};animation-delay:${idx * 55}ms;">
+                ${p.iconUrl ? `<img src="${escHtml(p.iconUrl)}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;" />` : `<span>${platformGlyph(p.id)}</span>`}
+                <span>${escHtml(p.name)}</span>
+              </div>
+            `).join("") || `<small class="muted">No platforms enabled</small>`}
+          </div>
+        ` : ""}
+        <button type="button" id="toggleSocialPreviewFab" class="fab-main-circle ${escHtml(cfg.buttonSize)} ${state.previewSocialOpen ? "open" : ""}" style="background:linear-gradient(135deg,${escHtml(cfg.primaryHex)},#00D4FF);" title="Click to test + / X animation">+</button>
+      </div>
+    ` : `<div style="text-align:center;padding:12px;"><small class="muted">Floating Support Button is currently disabled.</small></div>`}
+  `;
+
+  document.getElementById("toggleSocialPreviewFab")?.addEventListener("click", () => {
+    state.previewSocialOpen = !state.previewSocialOpen;
+    updateSocialPreviewStage();
   });
 }
-window.delPopup = async (id) => { await api(`/api/admin/cms/popups/${id}`, { method: "DELETE" }); loadTab("popups"); };
+
+function renderSocialSupport(ws) {
+  const s = state.socialSupport || {
+    enabled: true,
+    position: "BOTTOM_RIGHT",
+    buttonSize: "MEDIUM",
+    animationStyle: "FLOAT_GLOW",
+    primaryHex: "#8B5CF6",
+    menuBgHex: "#140F2A",
+    welcomeText: "Connect with MY Shop Support",
+    platforms: defaultSocialPlatformsFallback(),
+  };
+  const an = state.engagementAnalytics || {};
+
+  ws.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Facebook Clicks</div><div class="kpi-value" style="color:#1877F2;">${an.fbClicks ?? 0}</div></div>
+      <div class="kpi-card"><div class="kpi-label">YouTube Clicks</div><div class="kpi-value" style="color:#FF4D4F;">${an.ytClicks ?? 0}</div></div>
+      <div class="kpi-card"><div class="kpi-label">TikTok Clicks</div><div class="kpi-value" style="color:#FE2C55;">${an.ttClicks ?? 0}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Telegram Clicks</div><div class="kpi-value" style="color:#26A5E4;">${an.tgClicks ?? 0}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total Social Engagement</div><div class="kpi-value">${an.totalSocialClicks ?? 0}</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3>Floating Social Support Configuration</h3>
+            <small class="muted">${state.socialMeta?.hasDraftChanges ? "⚠️ Unpublished draft changes" : state.socialMeta?.hasPublished ? "🟢 Live on MY Shop User Panel" : "Configure URLs & Publish"}</small>
+          </div>
+          <label style="flex-direction:row;align-items:center;gap:8px;color:var(--text-main);">
+            <input type="checkbox" id="socEnabled" ${s.enabled !== false ? "checked" : ""} style="width:auto;" />
+            <span>Enable Floating Support</span>
+          </label>
+        </div>
+
+        <form id="socialSupportForm" class="stack-form">
+          <div class="form-grid">
+            <label><span>Button Screen Position</span>
+              <select id="socPos">
+                <option value="BOTTOM_RIGHT" ${s.position === "BOTTOM_RIGHT" ? "selected" : ""}>Bottom Right (Above Nav Bar)</option>
+                <option value="MID_RIGHT" ${s.position === "MID_RIGHT" ? "selected" : ""}>Middle Right</option>
+                <option value="TOP_RIGHT" ${s.position === "TOP_RIGHT" ? "selected" : ""}>Top Right</option>
+              </select>
+            </label>
+            <label><span>Button Size</span>
+              <select id="socSize">
+                <option value="COMPACT" ${s.buttonSize === "COMPACT" ? "selected" : ""}>Compact (48dp)</option>
+                <option value="MEDIUM" ${s.buttonSize === "MEDIUM" ? "selected" : ""}>Medium (56dp)</option>
+                <option value="LARGE" ${s.buttonSize === "LARGE" ? "selected" : ""}>Large (64dp)</option>
+              </select>
+            </label>
+            <label><span>3D Animation Style</span>
+              <select id="socAnim">
+                <option value="FLOAT_GLOW" ${s.animationStyle === "FLOAT_GLOW" ? "selected" : ""}>Floating Neon Glow</option>
+                <option value="PULSE_ORBIT" ${s.animationStyle === "PULSE_ORBIT" ? "selected" : ""}>Pulse Orbit Halo</option>
+                <option value="SPRING_3D" ${s.animationStyle === "SPRING_3D" ? "selected" : ""}>3D Spring Bounce</option>
+              </select>
+            </label>
+            <label><span>FAB Primary Color</span><input id="socPrimaryHex" type="color" value="${escHtml(s.primaryHex || "#8B5CF6")}" style="height:42px;padding:4px;" /></label>
+            <label><span>Menu Surface Color</span><input id="socMenuBgHex" type="color" value="${escHtml(s.menuBgHex || "#140F2A")}" style="height:42px;padding:4px;" /></label>
+            <label><span>Menu Header Text</span><input id="socWelcomeText" value="${escHtml(s.welcomeText || "")}" placeholder="Connect with MY Shop Support" /></label>
+          </div>
+
+          <hr class="divider" />
+          <h4>Configurable Social Platforms (Facebook, YouTube, TikTok, Telegram)</h4>
+          <small class="muted">Enter full https:// URLs or leave blank until ready. Upload custom icons directly to Firebase Storage via Render.</small>
+
+          ${(s.platforms || defaultSocialPlatformsFallback()).map((p) => `
+            <div class="platform-editor-card">
+              <div class="card-header" style="margin-bottom:8px;">
+                <strong style="color:${escHtml(p.colorHex)};">${platformGlyph(p.id)} ${escHtml(p.id.toUpperCase())}</strong>
+                <label style="flex-direction:row;align-items:center;gap:6px;">
+                  <input type="checkbox" id="soc_en_${escHtml(p.id)}" ${p.enabled !== false ? "checked" : ""} style="width:auto;" />
+                  <span>Enabled</span>
+                </label>
+              </div>
+              <div class="form-grid">
+                <label><span>Platform Name</span><input id="soc_name_${escHtml(p.id)}" value="${escHtml(p.name)}" /></label>
+                <label><span>Support Subtitle</span><input id="soc_sub_${escHtml(p.id)}" value="${escHtml(p.subtitle || "")}" /></label>
+                <label><span>Destination URL (https://…)</span><input id="soc_url_${escHtml(p.id)}" value="${escHtml(p.url || "")}" placeholder="https://…" /></label>
+                <label><span>Button Accent Color</span><input id="soc_col_${escHtml(p.id)}" type="color" value="${escHtml(p.colorHex)}" style="height:42px;padding:4px;" /></label>
+                <label><span>Custom Icon / Profile URL</span><input id="soc_icon_${escHtml(p.id)}" value="${escHtml(p.iconUrl || "")}" placeholder="https://… (optional)" /></label>
+                <div style="display:flex;align-items:flex-end;gap:6px;">
+                  <input type="file" id="soc_file_${escHtml(p.id)}" accept="image/jpeg,image/png,image/webp" class="hidden" />
+                  <button type="button" class="btn-outline small" onclick="document.getElementById('soc_file_${escHtml(p.id)}').click()">📷 Upload Custom Icon</button>
+                </div>
+              </div>
+            </div>
+          `).join("")}
+
+          <div class="badge-row" style="margin-top:6px;">
+            <button type="button" id="saveSocialDraftBtn" class="btn-outline">Save Draft Changes</button>
+            <button type="submit" class="btn-neon">🚀 Publish Social Support Live</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Live Interactive Preview (+ → X)</h3>
+          <div class="badge-row">
+            <button type="button" class="btn-outline small" id="socPrevMobileBtn">📱 Mobile</button>
+            <button type="button" class="btn-outline small" id="socPrevDesktopBtn">🖥️ Desktop</button>
+          </div>
+        </div>
+        <p class="muted small" style="margin-bottom:10px;">Tap the floating + button inside the preview to test the staggered social support menu.</p>
+        <div id="socialPreviewStage" class="preview-stage ${state.previewDevice}"></div>
+      </div>
+    </div>
+  `;
+
+  updateSocialPreviewStage();
+
+  document.getElementById("socPrevMobileBtn").addEventListener("click", () => {
+    state.previewDevice = "mobile";
+    updateSocialPreviewStage();
+  });
+  document.getElementById("socPrevDesktopBtn").addEventListener("click", () => {
+    state.previewDevice = "desktop";
+    updateSocialPreviewStage();
+  });
+
+  // Live re-render preview when editing any social field
+  document.getElementById("socialSupportForm").addEventListener("input", updateSocialPreviewStage);
+  document.getElementById("socialSupportForm").addEventListener("change", updateSocialPreviewStage);
+  document.getElementById("socEnabled").addEventListener("change", updateSocialPreviewStage);
+
+  // Direct image upload per platform
+  (s.platforms || defaultSocialPlatformsFallback()).forEach((p) => {
+    const fileInput = document.getElementById(`soc_file_${p.id}`);
+    fileInput?.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append("folder", "social_icons");
+      fd.append("images", file);
+      try {
+        toast(`Uploading ${p.name} custom icon…`);
+        const res = await api("/api/admin/catalog/uploads/images", { method: "POST", body: fd });
+        const url = res.images?.[0]?.url || "";
+        if (url) {
+          document.getElementById(`soc_icon_${p.id}`).value = url;
+          updateSocialPreviewStage();
+          toast(`${p.name} icon uploaded!`);
+        }
+      } catch (err) {
+        toast(err.message, false);
+      }
+    });
+  });
+
+  document.getElementById("saveSocialDraftBtn").addEventListener("click", async () => {
+    try {
+      const payload = collectSocialSupportForm();
+      await api("/api/admin/cms/social-support", {
+        method: "PUT",
+        body: JSON.stringify({ ...payload, publish: false }),
+      });
+      toast("Social support draft saved!");
+      loadTab("social");
+    } catch (err) {
+      toast(err.message, false);
+    }
+  });
+
+  document.getElementById("socialSupportForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const payload = collectSocialSupportForm();
+      await api("/api/admin/cms/social-support/publish", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      toast("Social support settings published live to MY Shop User Panel!");
+      loadTab("social");
+    } catch (err) {
+      toast(err.message, false);
+    }
+  });
+}
+
+function getPopupFormValues() {
+  return {
+    id: state.editingPopupId || undefined,
+    title: document.getElementById("popTitle")?.value || "Welcome to MY Shop!",
+    subtitle: document.getElementById("popSubtitle")?.value || "Shop Smart • Live Happy!",
+    description: document.getElementById("popDesc")?.value || "",
+    imageUrl: document.getElementById("popImg")?.value || "",
+    buttonText: document.getElementById("popBtn")?.value || "Join Our Community",
+    buttonUrl: document.getElementById("popUrl")?.value || "/explore",
+    designStyle: document.getElementById("popDesign")?.value || "NEON_GLASS",
+    themeStyle: document.getElementById("popTheme")?.value || "DARK_NEON",
+    animation3D: document.getElementById("popAnim3D")?.value || "PERSPECTIVE_FLIP",
+    bgHex: document.getElementById("popBgHex")?.value || "#120B29",
+    includeSocialButtons: Boolean(document.getElementById("popSocialBtns")?.checked),
+    templateType: document.getElementById("popTemplate")?.value || "WELCOME_3D",
+    frequency: document.getElementById("popFreq")?.value || "ONCE_PER_DAY",
+    delaySeconds: Number(document.getElementById("popDelay")?.value || 1),
+    durationSeconds: Number(document.getElementById("popDur")?.value || 0),
+    targetAudience: document.getElementById("popAudience")?.value || "ALL",
+    startDate: document.getElementById("popStart")?.value || "",
+    endDate: document.getElementById("popEnd")?.value || "",
+    active: Boolean(document.getElementById("popActive")?.checked),
+  };
+}
+
+function updatePopupPreviewStage() {
+  const stage = document.getElementById("popupPreviewStage");
+  if (!stage) return;
+  const p = getPopupFormValues();
+  const platforms = (state.socialSupport?.platforms || defaultSocialPlatformsFallback()).filter((x) => x.enabled);
+  stage.className = `preview-stage ${state.previewDevice}`;
+  stage.innerHTML = `
+    <div class="preview-mockup-bar">
+      <span>3D Popup Preview (${escHtml(p.animation3D)} • ${escHtml(p.frequency)})</span>
+      <span>Delay: ${p.delaySeconds}s</span>
+    </div>
+    <div class="popup-3d-card" style="background:linear-gradient(145deg,${escHtml(p.bgHex)}ee,rgba(32,18,74,0.95));">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <img src="/admin/logo.svg" alt="MY Shop" style="width:28px;height:28px;" />
+          <strong style="font-size:0.85rem;color:#00D4FF;">${escHtml(p.subtitle || "Shop Smart • Live Happy!")}</strong>
+        </div>
+        <span style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;">✕</span>
+      </div>
+      ${p.imageUrl ? `<img src="${escHtml(p.imageUrl)}" style="width:100%;height:110px;object-fit:cover;border-radius:12px;margin-bottom:10px;" />` : `<div style="height:64px;border-radius:12px;background:linear-gradient(135deg,rgba(139,92,246,0.35),rgba(0,212,255,0.28));display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:1.3rem;">🛍️ ✨ 🎁</div>`}
+      <h3 style="font-size:1.1rem;font-weight:800;margin-bottom:6px;">${escHtml(p.title)}</h3>
+      <p style="font-size:0.8rem;color:#cbd5e1;line-height:1.45;">${escHtml(p.description)}</p>
+      ${p.includeSocialButtons ? `
+        <div class="popup-3d-social-row">
+          ${platforms.map((pl) => `<span style="background:${escHtml(pl.colorHex)};padding:5px 9px;border-radius:999px;font-size:0.72rem;font-weight:700;color:#fff;">${platformGlyph(pl.id)} ${escHtml(pl.name.split(" ")[0])}</span>`).join("")}
+        </div>
+      ` : ""}
+      <button type="button" class="btn-neon full-width" style="margin-top:6px;">${escHtml(p.buttonText || "Join Our Community")}</button>
+    </div>
+  `;
+}
+
+function renderPopups(ws) {
+  const ann = state.announcementConfig || {};
+  const an = state.engagementAnalytics || {};
+  const editItem = state.popups.find((x) => x.id === state.editingPopupId) || null;
+
+  ws.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Popup Impressions</div><div class="kpi-value">${an.popupImpressions ?? 0}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Popup Closes</div><div class="kpi-value">${an.popupCloses ?? 0}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Close / Dismiss Rate</div><div class="kpi-value">${an.closeRatePercent ?? 0}%</div></div>
+      <div class="kpi-card"><div class="kpi-label">Social CTA Clicks</div><div class="kpi-value">${an.totalSocialClicks ?? 0}</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <h3>${editItem ? "Edit 3D Welcome Popup" : "3D Welcome & Promotional Popup Builder"}</h3>
+          ${editItem ? `<button type="button" class="btn-outline small" id="cancelPopupEditBtn">New Popup</button>` : ""}
+        </div>
+
+        <div class="badge-row" style="margin-bottom:12px;">
+          <small class="muted">Templates:</small>
+          <button type="button" class="btn-outline small" onclick="applyPopupTemplate('WELCOME_3D')">✨ 3D Welcome + Social</button>
+          <button type="button" class="btn-outline small" onclick="applyPopupTemplate('FLASH_SALE')">⚡ Flash Sale</button>
+          <button type="button" class="btn-outline small" onclick="applyPopupTemplate('VIP_SOCIAL')">💎 VIP Community</button>
+        </div>
+
+        <form id="popForm" class="stack-form">
+          <div class="form-grid">
+            <label><span>Popup Title *</span><input id="popTitle" required value="${escHtml(editItem?.title || "Welcome to MY Shop!")}" /></label>
+            <label><span>Subtitle / Tagline</span><input id="popSubtitle" value="${escHtml(editItem?.subtitle || "Shop Smart • Live Happy!")}" /></label>
+            <label><span>Template Type</span>
+              <select id="popTemplate">
+                <option value="WELCOME_3D" ${editItem?.templateType === "WELCOME_3D" ? "selected" : ""}>WELCOME_3D</option>
+                <option value="FLASH_SALE" ${editItem?.templateType === "FLASH_SALE" ? "selected" : ""}>FLASH_SALE</option>
+                <option value="VIP_SOCIAL" ${editItem?.templateType === "VIP_SOCIAL" ? "selected" : ""}>VIP_SOCIAL</option>
+              </select>
+            </label>
+            <label><span>Design Style</span>
+              <select id="popDesign">
+                <option value="NEON_GLASS" ${editItem?.designStyle === "NEON_GLASS" ? "selected" : ""}>Neon Glassmorphism</option>
+                <option value="CYBER_AURORA" ${editItem?.designStyle === "CYBER_AURORA" ? "selected" : ""}>Cyber Aurora Gradient</option>
+                <option value="ROYAL_PURPLE" ${editItem?.designStyle === "ROYAL_PURPLE" ? "selected" : ""}>Royal Purple Studio</option>
+              </select>
+            </label>
+            <label><span>3D Animation</span>
+              <select id="popAnim3D">
+                <option value="PERSPECTIVE_FLIP" ${editItem?.animation3D === "PERSPECTIVE_FLIP" ? "selected" : ""}>3D Perspective Tilt</option>
+                <option value="FLOAT_DEPTH" ${editItem?.animation3D === "FLOAT_DEPTH" ? "selected" : ""}>Floating 3D Depth</option>
+                <option value="ORBIT_PULSE" ${editItem?.animation3D === "ORBIT_PULSE" ? "selected" : ""}>Orbit Neon Pulse</option>
+              </select>
+            </label>
+            <label><span>Theme Style</span>
+              <select id="popTheme">
+                <option value="DARK_NEON" ${editItem?.themeStyle === "DARK_NEON" ? "selected" : ""}>Dark Neon</option>
+                <option value="VIBRANT_CYBER" ${editItem?.themeStyle === "VIBRANT_CYBER" ? "selected" : ""}>Vibrant Cyber</option>
+                <option value="FROSTED_LIGHT" ${editItem?.themeStyle === "FROSTED_LIGHT" ? "selected" : ""}>Frosted Light</option>
+              </select>
+            </label>
+            <label><span>Background Color</span><input id="popBgHex" type="color" value="${escHtml(editItem?.bgHex || "#120B29")}" style="height:42px;padding:4px;" /></label>
+            <label><span>Display Frequency</span>
+              <select id="popFreq">
+                <option value="EVERY_VISIT" ${editItem?.frequency === "EVERY_VISIT" ? "selected" : ""}>Show Every Visit</option>
+                <option value="ONCE_PER_SESSION" ${editItem?.frequency === "ONCE_PER_SESSION" ? "selected" : ""}>Once Per Session</option>
+                <option value="ONCE_PER_DAY" ${(!editItem || editItem?.frequency === "ONCE_PER_DAY") ? "selected" : ""}>Once Per Day</option>
+                <option value="ONCE_PER_WEEK" ${editItem?.frequency === "ONCE_PER_WEEK" ? "selected" : ""}>Once Per Week</option>
+                <option value="ONCE_PER_USER" ${editItem?.frequency === "ONCE_PER_USER" ? "selected" : ""}>Once Per User</option>
+              </select>
+            </label>
+            <label><span>Target Audience</span>
+              <select id="popAudience">
+                <option value="ALL" ${editItem?.targetAudience !== "NEW_VISITORS" ? "selected" : ""}>All Visitors</option>
+                <option value="NEW_VISITORS" ${editItem?.targetAudience === "NEW_VISITORS" ? "selected" : ""}>New Visitors Only</option>
+              </select>
+            </label>
+            <label><span>Trigger Delay (sec)</span><input id="popDelay" type="number" min="0" max="30" value="${editItem?.delaySeconds ?? 1}" /></label>
+            <label><span>Auto-Close (sec, 0=Manual)</span><input id="popDur" type="number" min="0" max="300" value="${editItem?.durationSeconds ?? 0}" /></label>
+            <label><span>CTA Button Text</span><input id="popBtn" value="${escHtml(editItem?.buttonText || "Join Our Community")}" /></label>
+            <label><span>CTA Destination Route/URL</span><input id="popUrl" value="${escHtml(editItem?.buttonUrl || "/explore")}" /></label>
+            <label><span>Start Date (YYYY-MM-DD)</span><input id="popStart" type="date" value="${escHtml(editItem?.startDate || "")}" /></label>
+            <label><span>End Date (YYYY-MM-DD)</span><input id="popEnd" type="date" value="${escHtml(editItem?.endDate || "")}" /></label>
+          </div>
+
+          <div class="form-grid">
+            <label><span>Popup Banner / 3D Image URL</span><input id="popImg" value="${escHtml(editItem?.imageUrl || "")}" placeholder="https://… (or upload below)" /></label>
+            <div style="display:flex;align-items:flex-end;">
+              <input type="file" id="popImgUpload" accept="image/jpeg,image/png,image/webp" class="hidden" />
+              <button type="button" class="btn-outline small" onclick="document.getElementById('popImgUpload').click()">📷 Upload Popup Image</button>
+            </div>
+          </div>
+
+          <label><span>Popup Description / Message</span><textarea id="popDesc" rows="2">${escHtml(editItem?.description || "Join our official social communities and never miss exciting offers, updates and support.")}</textarea></label>
+
+          <div class="badge-row">
+            <label style="flex-direction:row;align-items:center;gap:6px;"><input type="checkbox" id="popSocialBtns" ${editItem?.includeSocialButtons !== false ? "checked" : ""} style="width:auto;" /> Show Social Support Buttons (FB, YT, TikTok, TG)</label>
+            <label style="flex-direction:row;align-items:center;gap:6px;"><input type="checkbox" id="popActive" ${editItem?.active !== false ? "checked" : ""} style="width:auto;" /> Active / Live</label>
+          </div>
+
+          <button type="submit" class="btn-neon">${editItem ? "Save 3D Popup Changes" : "🚀 Publish 3D Popup Notice"}</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Live 3D Welcome Popup Preview</h3>
+          <div class="badge-row">
+            <button type="button" class="btn-outline small" id="popPrevMobileBtn">📱 Mobile</button>
+            <button type="button" class="btn-outline small" id="popPrevDesktopBtn">🖥️ Desktop</button>
+          </div>
+        </div>
+        <div id="popupPreviewStage" class="preview-stage ${state.previewDevice}"></div>
+
+        <hr class="divider" style="margin:16px 0;" />
+        <h3>Top Storefront Announcement Bar</h3>
+        <form id="annForm" class="stack-form" style="margin-top:8px;">
+          <label style="flex-direction:row;align-items:center;gap:6px;"><input type="checkbox" id="annEnabled" ${ann.enabled !== false ? "checked" : ""} style="width:auto;" /> Enable Live Announcement Banner</label>
+          <div class="form-grid">
+            <label><span>Badge Label</span><input id="annBadge" value="${escHtml(ann.badgeText || "FLASH DEAL")}" /></label>
+            <label><span>Banner Color</span><input id="annBg" type="color" value="${escHtml(ann.bgHex || "#8B5CF6")}" style="height:42px;padding:4px;" /></label>
+          </div>
+          <label><span>Announcement Text</span><input id="annText" value="${escHtml(ann.text || "Cyber Flash Sale Live! Use MYSHOP10 for 10% OFF.")}" /></label>
+          <label><span>Optional Action Link</span><input id="annUrl" value="${escHtml(ann.actionUrl || "")}" placeholder="/explore or https://…" /></label>
+          <button type="submit" class="btn-outline">Save Announcement Bar</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Configured Popup Notices (${state.popups.length})</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Frequency</th><th>Audience</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${state.popups.map((p) => `
+              <tr>
+                <td><strong>${escHtml(p.title)}</strong><br><small class="muted">${escHtml(p.subtitle || "")}</small></td>
+                <td>${escHtml(p.frequency || "ONCE_PER_SESSION")}</td>
+                <td>${escHtml(p.targetAudience || "ALL")}</td>
+                <td>${p.active ? "🟢 Live" : "⚪ Paused"}</td>
+                <td style="display:flex;gap:6px;">
+                  <button class="btn-outline small" onclick="editPopupItem('${escHtml(p.id)}')">Edit</button>
+                  <button class="btn-danger small" onclick="delPopup('${escHtml(p.id)}')">Delete</button>
+                </td>
+              </tr>`).join("") || `<tr><td colspan="5" class="muted">No popups published yet. Use the 3D builder above!</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  updatePopupPreviewStage();
+
+  document.getElementById("popPrevMobileBtn").addEventListener("click", () => {
+    state.previewDevice = "mobile";
+    updatePopupPreviewStage();
+  });
+  document.getElementById("popPrevDesktopBtn").addEventListener("click", () => {
+    state.previewDevice = "desktop";
+    updatePopupPreviewStage();
+  });
+  document.getElementById("cancelPopupEditBtn")?.addEventListener("click", () => {
+    state.editingPopupId = null;
+    renderPopups(ws);
+  });
+
+  document.getElementById("popForm").addEventListener("input", updatePopupPreviewStage);
+  document.getElementById("popForm").addEventListener("change", updatePopupPreviewStage);
+
+  document.getElementById("popImgUpload").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("folder", "popups");
+    fd.append("images", file);
+    try {
+      toast("Uploading 3D popup banner image…");
+      const res = await api("/api/admin/catalog/uploads/images", { method: "POST", body: fd });
+      const url = res.images?.[0]?.url || "";
+      if (url) {
+        document.getElementById("popImg").value = url;
+        updatePopupPreviewStage();
+        toast("Popup image uploaded!");
+      }
+    } catch (err) {
+      toast(err.message, false);
+    }
+  });
+
+  document.getElementById("popForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const payload = getPopupFormValues();
+      await api("/api/admin/cms/popups", { method: "POST", body: JSON.stringify(payload) });
+      state.editingPopupId = null;
+      toast("3D Popup notice published & synced!");
+      loadTab("popups");
+    } catch (err) {
+      toast(err.message, false);
+    }
+  });
+
+  document.getElementById("annForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await api("/api/admin/cms/announcements", {
+        method: "PUT",
+        body: JSON.stringify({
+          enabled: document.getElementById("annEnabled").checked,
+          badgeText: document.getElementById("annBadge").value,
+          bgHex: document.getElementById("annBg").value,
+          text: document.getElementById("annText").value,
+          actionUrl: document.getElementById("annUrl").value,
+        }),
+      });
+      toast("Announcement bar updated live!");
+    } catch (err) {
+      toast(err.message, false);
+    }
+  });
+}
+
+window.applyPopupTemplate = (tpl) => {
+  const templates = {
+    WELCOME_3D: {
+      title: "Welcome to MY Shop!",
+      subtitle: "Shop Smart • Live Happy!",
+      description: "Join our official social communities and never miss exciting offers, updates and support.",
+      btn: "Join Our Community",
+      url: "/explore",
+      freq: "ONCE_PER_DAY",
+      bg: "#120B29",
+    },
+    FLASH_SALE: {
+      title: "⚡ Cyber Flash Sale Live!",
+      subtitle: "Up to 40% OFF Today Only",
+      description: "Grab lightning deals across electronics, fashion & gaming — plus follow our social channels for secret drops.",
+      btn: "Shop Flash Deals",
+      url: "/explore",
+      freq: "ONCE_PER_SESSION",
+      bg: "#1E0B38",
+    },
+    VIP_SOCIAL: {
+      title: "Unlock VIP Reward Drops!",
+      subtitle: "MY Shop Social Community",
+      description: "Follow our Facebook, YouTube, TikTok & Telegram channels for weekly coupon codes and live giveaways.",
+      btn: "Explore Fun Zone",
+      url: "/fun_zone",
+      freq: "ONCE_PER_WEEK",
+      bg: "#091A32",
+    },
+  };
+  const t = templates[tpl];
+  if (!t) return;
+  document.getElementById("popTemplate").value = tpl;
+  document.getElementById("popTitle").value = t.title;
+  document.getElementById("popSubtitle").value = t.subtitle;
+  document.getElementById("popDesc").value = t.description;
+  document.getElementById("popBtn").value = t.btn;
+  document.getElementById("popUrl").value = t.url;
+  document.getElementById("popFreq").value = t.freq;
+  document.getElementById("popBgHex").value = t.bg;
+  updatePopupPreviewStage();
+};
+
+window.editPopupItem = (id) => {
+  state.editingPopupId = id;
+  renderPopups(document.getElementById("workspace"));
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+window.delPopup = async (id) => {
+  if (!confirm("Delete this popup notice?")) return;
+  await api(`/api/admin/cms/popups/${id}`, { method: "DELETE" });
+  if (state.editingPopupId === id) state.editingPopupId = null;
+  loadTab("popups");
+};
 
 function renderSellersDelivery(ws) {
   ws.innerHTML = `<div class="two-col">

@@ -38,6 +38,41 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /social_support_settings/{configId} {
+      allow get, list: if true;
+      allow write: if false;
+    }
+
+    match /announcement_settings/{configId} {
+      allow get, list: if true;
+      allow write: if false;
+    }
+
+    // Privacy-safe aggregate impression/close/social-click counters (no PII)
+    match /analytics_counters/{docId} {
+      allow get: if docId == 'global';
+      allow list: if false;
+      allow create: if docId == 'global' &&
+                       incoming().keys().hasOnly(['popupImpressions', 'popupCloses', 'fbClicks', 'ytClicks', 'ttClicks', 'tgClicks', 'updatedAt']) &&
+                       (!('popupImpressions' in incoming()) || (incoming().popupImpressions is int && incoming().popupImpressions >= 0 && incoming().popupImpressions <= 1)) &&
+                       (!('popupCloses' in incoming()) || (incoming().popupCloses is int && incoming().popupCloses >= 0 && incoming().popupCloses <= 1)) &&
+                       (!('fbClicks' in incoming()) || (incoming().fbClicks is int && incoming().fbClicks >= 0 && incoming().fbClicks <= 1)) &&
+                       (!('ytClicks' in incoming()) || (incoming().ytClicks is int && incoming().ytClicks >= 0 && incoming().ytClicks <= 1)) &&
+                       (!('ttClicks' in incoming()) || (incoming().ttClicks is int && incoming().ttClicks >= 0 && incoming().ttClicks <= 1)) &&
+                       (!('tgClicks' in incoming()) || (incoming().tgClicks is int && incoming().tgClicks <= 1 && incoming().tgClicks >= 0)) &&
+                       isValidTimestamp(incoming().updatedAt);
+      allow update: if docId == 'global' &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['popupImpressions', 'popupCloses', 'fbClicks', 'ytClicks', 'ttClicks', 'tgClicks', 'updatedAt']) &&
+                       (!('popupImpressions' in incoming().diff(existing()).affectedKeys()) || (incoming().popupImpressions is int && incoming().popupImpressions == existing().get('popupImpressions', 0) + 1)) &&
+                       (!('popupCloses' in incoming().diff(existing()).affectedKeys()) || (incoming().popupCloses is int && incoming().popupCloses == existing().get('popupCloses', 0) + 1)) &&
+                       (!('fbClicks' in incoming().diff(existing()).affectedKeys()) || (incoming().fbClicks is int && incoming().fbClicks == existing().get('fbClicks', 0) + 1)) &&
+                       (!('ytClicks' in incoming().diff(existing()).affectedKeys()) || (incoming().ytClicks is int && incoming().ytClicks == existing().get('ytClicks', 0) + 1)) &&
+                       (!('ttClicks' in incoming().diff(existing()).affectedKeys()) || (incoming().ttClicks is int && incoming().ttClicks == existing().get('ttClicks', 0) + 1)) &&
+                       (!('tgClicks' in incoming().diff(existing()).affectedKeys()) || (incoming().tgClicks is int && incoming().tgClicks == existing().get('tgClicks', 0) + 1)) &&
+                       isValidTimestamp(incoming().updatedAt);
+      allow delete: if false;
+    }
+
     match /fun_zone_config/{configId} {
       allow get, list: if true;
       allow write: if false;
