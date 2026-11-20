@@ -12,6 +12,7 @@ router.get("/", async (req, res, next) => {
   try {
     const { page, limit } = parsePagination(req.query);
     const search = String(req.query.search || "").trim().toLowerCase();
+    const status = String(req.query.status || "").trim().toLowerCase();
 
     const snap = await getDb().collection("users").get();
     let list = snap.docs.map((d) => {
@@ -32,12 +33,16 @@ router.get("/", async (req, res, next) => {
       };
     });
 
+    if (status === "active") list = list.filter((c) => !c.suspended);
+    else if (status === "suspended") list = list.filter((c) => c.suspended);
+
     if (search) {
       list = list.filter((c) =>
         `${c.displayName} ${c.email} ${c.phone} ${c.userId}`.toLowerCase().includes(search)
       );
     }
 
+    list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
     const total = list.length;
     res.json({ items: list.slice((page - 1) * limit, page * limit), total, page, limit });
   } catch (err) {
@@ -60,6 +65,13 @@ router.get("/:userId", async (req, res, next) => {
     if (!userSnap.exists) return res.status(404).json({ error: "Customer not found." });
 
     const u = userSnap.data();
+    const orders = ordersSnap.docs
+      .map((d) => ({ id: d.id, ...d.data(), createdAt: toIsoDate(d.data().createdAt) }))
+      .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    const totalSpent = orders
+      .filter((o) => o.orderStatus !== "Cancelled" && o.orderStatus !== "Refunded")
+      .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+
     res.json({
       customer: {
         userId: userSnap.id,
@@ -70,11 +82,57 @@ router.get("/:userId", async (req, res, next) => {
         walletBalance: Number(u.walletBalance || 0),
         suspended: Boolean(u.suspended),
         createdAt: toIsoDate(u.createdAt),
+        totalSpent,
+        ordersCount: orders.length,
       },
-      orders: ordersSnap.docs.map((d) => ({ id: d.id, ...d.data(), createdAt: toIsoDate(d.data().createdAt) })),
+      totalSpent,
+      ordersCount: orders.length,
+      orders,
       addresses: addressesSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
       supportTickets: ticketsSnap.docs.map((d) => ({ id: d.id, ...d.data(), createdAt: toIsoDate(d.data().createdAt) })),
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/admin/customers/:userId (Edit customer profile details safely)
+router.patch("/:userId", async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const b = req.body || {};
+    const db = getDb();
+    const ref = db.collection("users").doc(userId);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: "Customer not found." });
+
+    const updates = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+    if (typeof b.displayName === "string" && b.displayName.trim().length >= 2) {
+      updates.displayName = b.displayName.trim().slice(0, 80);
+    }
+    if (typeof b.phone === "string") {
+      updates.phone = b.phone.trim().slice(0, 30);
+    }
+    if (b.points !== undefined && Number.isFinite(Number(b.points))) {
+      updates.points = Math.max(0, Math.round(Number(b.points)));
+    }
+    if (b.walletBalance !== undefined && Number.isFinite(Number(b.walletBalance))) {
+      updates.walletBalance = Math.max(0, Math.round(Number(b.walletBalance)));
+    }
+    if (typeof b.suspended === "boolean") {
+      updates.suspended = b.suspended;
+      try {
+        await getAdminAuth().updateUser(userId, { disabled: b.suspended });
+      } catch {
+        // Auth record might not exist for synthetic/emulator user IDs
+      }
+    }
+
+    await ref.set(updates, { merge: true });
+    await logAdminAudit(req, "CUSTOMER_PROFILE_UPDATE", `users/${userId}`, {
+      fields: Object.keys(updates).filter((k) => k !== "updatedAt"),
+    });
+    res.json({ ok: true, userId });
   } catch (err) {
     next(err);
   }

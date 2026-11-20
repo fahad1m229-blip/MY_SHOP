@@ -244,7 +244,11 @@ const state = {
     brand: "",
     tab: "all", // all | featured | trending | bestSeller | freeDelivery | flashSale
     sort: "newest",
+    inStockOnly: false,
   },
+  heroSlideIdx: 0,
+  selectedDetailColor: "",
+  selectedDetailSize: "",
   appliedCoupon: "",
   socialOpen: false,
   popupShownThisSession: false,
@@ -438,13 +442,19 @@ function updateHeaderChromes() {
     }
   }
 
-  // Cart, Wishlist, Account badges
+  // Cart, Wishlist, Notifications, Account badges
   const cartQty = state.cart.reduce((sum, item) => sum + Number(item.quantity || 1), 0);
   document.getElementById("cartBadgeTop").textContent = cartQty;
   const mobBadge = document.getElementById("cartBadgeMob");
   mobBadge.textContent = cartQty;
   mobBadge.classList.toggle("hidden", cartQty <= 0);
   document.getElementById("wishlistBadgeTop").textContent = state.wishlistIds.length;
+  const notifBadge = document.getElementById("notifBadgeTop");
+  if (notifBadge) {
+    const unreadCount = state.notifications.filter((n) => n && n.read === false).length;
+    notifBadge.textContent = unreadCount;
+    notifBadge.classList.toggle("hidden", !state.customer || unreadCount <= 0);
+  }
   document.getElementById("topAccountLabel").textContent = state.customer
     ? state.customer.displayName.split(" ")[0]
     : t("signIn");
@@ -474,7 +484,7 @@ function updateHeaderChromes() {
 
 function getFilteredProducts() {
   let list = [...state.products];
-  const { search, category, brand, tab, sort } = state.filters;
+  const { search, category, brand, tab, sort, inStockOnly } = state.filters;
 
   if (search.trim()) {
     const q = search.trim().toLowerCase();
@@ -487,6 +497,9 @@ function getFilteredProducts() {
   }
   if (brand) {
     list = list.filter((p) => String(p.brand).toLowerCase() === brand.toLowerCase());
+  }
+  if (inStockOnly) {
+    list = list.filter((p) => p.available !== false && Number(p.stock || 0) > 0);
   }
   if (tab === "featured") list = list.filter((p) => p.featured);
   if (tab === "trending") list = list.filter((p) => p.trending);
@@ -516,19 +529,41 @@ function renderProductVisual(p, cls = "product-thumb") {
   `;
 }
 
+function colorNameToHex(name) {
+  const s = String(name || "").toLowerCase();
+  if (s.includes("violet") || s.includes("purple")) return "#8B5CF6";
+  if (s.includes("cyan") || s.includes("aqua")) return "#00D4FF";
+  if (s.includes("blue") || s.includes("navy") || s.includes("cobalt")) return "#3B82F6";
+  if (s.includes("pink") || s.includes("rose") || s.includes("magenta")) return "#EC4899";
+  if (s.includes("red") || s.includes("crimson") || s.includes("coral")) return "#EF4444";
+  if (s.includes("green") || s.includes("emerald") || s.includes("mint") || s.includes("olive")) return "#10B981";
+  if (s.includes("gold") || s.includes("amber") || s.includes("yellow")) return "#F59E0B";
+  if (s.includes("silver") || s.includes("titan") || s.includes("grey") || s.includes("gray")) return "#94A3B8";
+  if (s.includes("white") || s.includes("pearl") || s.includes("ivory")) return "#F8FAFC";
+  return "#1E293B";
+}
+
 function renderProductCard(p) {
   const title = state.lang === "BN" && p.nameBn ? p.nameBn : p.name;
   const wished = state.wishlistIds.includes(p.id);
   const compared = state.compareIds.includes(p.id);
   const outOfStock = !p.available || Number(p.stock || 0) <= 0;
+  const badgeHtml =
+    p.discountPercent > 0
+      ? `<span class="discount-pill">-${p.discountPercent}%</span>`
+      : p.bestSeller
+      ? `<span class="discount-pill" style="background:var(--neon-purple)">BEST</span>`
+      : p.featured || p.newArrival
+      ? `<span class="discount-pill" style="background:var(--emerald)">NEW</span>`
+      : "";
 
   return `
     <article class="product-card" data-product-id="${escapeHtml(p.id)}">
       <div class="product-thumb-wrap" data-action="open-product" data-id="${escapeHtml(p.id)}">
         ${renderProductVisual(p)}
-        ${p.discountPercent > 0 ? `<span class="discount-pill">-${p.discountPercent}%</span>` : ""}
-        <button type="button" class="cmp-float-btn ${compared ? "active" : ""}" data-action="toggle-compare" data-id="${escapeHtml(p.id)}" title="Compare">⚖️</button>
-        <button type="button" class="wish-float-btn" data-action="toggle-wish" data-id="${escapeHtml(p.id)}" aria-label="Wishlist">
+        ${badgeHtml}
+        <button type="button" class="cmp-float-btn ${compared ? "active" : ""}" data-action="toggle-compare" data-id="${escapeHtml(p.id)}" title="Compare" aria-label="Compare product">⚖️</button>
+        <button type="button" class="wish-float-btn" data-action="toggle-wish" data-id="${escapeHtml(p.id)}" aria-label="Toggle wishlist">
           ${wished ? "❤️" : "🤍"}
         </button>
       </div>
@@ -536,24 +571,24 @@ function renderProductCard(p) {
         <div class="product-brand">${escapeHtml(p.brand || "MY Shop")} • ${escapeHtml(getCategoryMeta(p.categoryId).title)}</div>
         <h3 class="product-title" data-action="open-product" data-id="${escapeHtml(p.id)}">${escapeHtml(title)}</h3>
         <div class="rating-line">★ ${Number(p.rating || 4.8).toFixed(1)} <span class="muted">(${p.reviewCount || 0})</span></div>
-        <div class="price-row">
-          <span class="price-now">${money(p.price)}</span>
-          ${p.originalPrice > p.price ? `<span class="price-old">${money(p.originalPrice)}</span>` : ""}
-        </div>
         <div class="stock-meta">
-          <span>${outOfStock ? `<span style="color:#fca5a5">${t("outOfStock")}</span>` : `Stock: ${p.stock}`}</span>
+          <span>${outOfStock ? `<span style="color:#fca5a5">${t("outOfStock")}</span>` : p.stock <= 5 ? `<span style="color:var(--amber)">Only ${p.stock} left</span>` : `In Stock`}</span>
           <span>${p.freeDelivery ? "🚚 Free" : ""}</span>
         </div>
-        <div class="card-actions">
+        <div class="price-action-row">
+          <div class="price-row">
+            <span class="price-now">${money(p.price)}</span>
+            ${p.originalPrice > p.price ? `<span class="price-old">${money(p.originalPrice)}</span>` : ""}
+          </div>
           <button
             type="button"
-            class="btn-neon sm full-width"
+            class="quick-add-circle"
             data-action="add-cart"
             data-id="${escapeHtml(p.id)}"
+            title="${outOfStock ? t("outOfStock") : t("addToCart")}"
+            aria-label="${outOfStock ? t("outOfStock") : t("addToCart")}"
             ${outOfStock ? "disabled" : ""}
-          >
-            ${outOfStock ? t("outOfStock") : `🛒 ${t("addToCart")}`}
-          </button>
+          >+</button>
         </div>
       </div>
     </article>
@@ -583,44 +618,87 @@ function renderHomeOrBrowse(mode = "home") {
     </div>`
     : "";
 
+  const nowMs = Date.now();
+  const configuredBanners = (Array.isArray(state.siteConfig?.banners) ? state.siteConfig.banners : []).filter((b) => {
+    if (!b || b.active === false) return false;
+    if (b.startDate && Date.parse(b.startDate) > nowMs) return false;
+    if (b.endDate && Date.parse(b.endDate) < nowMs) return false;
+    return true;
+  });
+
+  const heroSlides = [
+    {
+      badge: `⚡ ${t("heroBadge")}`,
+      title: t("heroTitle"),
+      subtitle: t("heroSub"),
+      imageUrl: "/hero-deals.jpg",
+      ctaText: `⚡ ${t("shopNow")}`,
+      linkUrl: "#catalog",
+    },
+    ...configuredBanners.map((b) => ({
+      badge: b.badge || "✨ FEATURED DROP",
+      title: b.title || "Special Offer",
+      subtitle: b.subtitle || "Explore verified deals & fast delivery across Bangladesh.",
+      imageUrl: isSafeHttpUrl(b.imageUrl) ? b.imageUrl : "/welcome-3d.jpg",
+      ctaText: b.ctaText || "Explore Collection →",
+      linkUrl: b.linkUrl || "#catalog",
+    })),
+  ];
+  const activeSlide = heroSlides[state.heroSlideIdx % heroSlides.length] || heroSlides[0];
+
   const heroHtml =
     mode === "home" && !state.filters.search
       ? `
-      <section class="hero-banner glass-panel">
-        <img src="/hero-deals.jpg" alt="MY Shop Cyber Deals" class="hero-bg-img" onerror="this.src='/welcome-3d.jpg'" />
-        <div class="hero-scrim"></div>
-        <div class="hero-content">
-          <span class="hero-badge">⚡ ${escapeHtml(t("heroBadge"))}</span>
-          <h1>${escapeHtml(t("heroTitle"))}</h1>
-          <p>${escapeHtml(t("heroSub"))}</p>
-          <div class="hero-actions">
-            <button type="button" class="btn-neon" onclick="document.getElementById('catalogSection').scrollIntoView({behavior:'smooth'})">
-              ⚡ ${escapeHtml(t("shopNow"))}
-            </button>
-            <button type="button" class="btn-outline" data-nav="deals">${escapeHtml(t("viewDeals"))}</button>
-            <button type="button" class="btn-outline" data-nav="funzone">🎮 ${escapeHtml(t("funZone"))}</button>
+      <div class="hero-bento">
+        <section class="hero-banner glass-panel">
+          <img src="${escapeHtml(activeSlide.imageUrl)}" alt="${escapeHtml(activeSlide.title)}" class="hero-bg-img" onerror="this.src='/welcome-3d.jpg'" />
+          <div class="hero-scrim"></div>
+          <div class="hero-content">
+            <span class="hero-badge">${escapeHtml(activeSlide.badge)}</span>
+            <h1>${escapeHtml(activeSlide.title)}</h1>
+            <p>${escapeHtml(activeSlide.subtitle)}</p>
+            <div class="hero-actions">
+              <button type="button" class="btn-neon" data-action="hero-cta" data-url="${escapeHtml(activeSlide.linkUrl)}">
+                ${escapeHtml(activeSlide.ctaText)}
+              </button>
+              <button type="button" class="btn-outline" data-nav="deals">${escapeHtml(t("viewDeals"))}</button>
+              <button type="button" class="btn-outline" data-nav="funzone">🎮 ${escapeHtml(t("funZone"))}</button>
+            </div>
+          </div>
+          ${
+            heroSlides.length > 1
+              ? `<div class="hero-dots">
+                  ${heroSlides
+                    .map(
+                      (_, idx) =>
+                        `<button type="button" class="hero-dot ${idx === state.heroSlideIdx % heroSlides.length ? "active" : ""}" data-action="hero-slide" data-idx="${idx}" aria-label="Slide ${idx + 1}"></button>`
+                    )
+                    .join("")}
+                </div>`
+              : ""
+          }
+        </section>
+        <div class="hero-side-stack">
+          <div class="bento-promo-card flash" data-nav="deals">
+            <div>
+              <small>⚡ LIMITED FLASH SALE</small>
+              <strong>Up to 40% Off + Coupons</strong>
+            </div>
+            <span class="bento-link">Grab Deals Now →</span>
+          </div>
+          <div class="bento-promo-card newdrop" data-nav="funzone">
+            <div>
+              <small>🎡 MY FUN ZONE & REWARDS</small>
+              <strong>Spin, Scratch & Win Codes</strong>
+            </div>
+            <span class="bento-link">Play & Save (${state.fun.points} Pts) →</span>
           </div>
         </div>
-      </section>
+      </div>
     `
       : "";
 
-  const banners = Array.isArray(state.siteConfig?.banners) ? state.siteConfig.banners : [];
-  const bannerRow =
-    mode === "home" && banners.length && !state.filters.search
-      ? `
-      <div class="chips-row" style="margin-bottom:14px">
-        ${banners
-          .map(
-            (b) => `
-          <div class="panel-card" style="min-width:265px;margin:0;padding:12px">
-            <strong>${escapeHtml(b.title || "Special Offer")}</strong>
-            <p class="small muted">${escapeHtml(b.subtitle || "")}</p>
-          </div>`
-          )
-          .join("")}
-      </div>`
-      : "";
+  const bannerRow = "";
 
   const categoryCardsHtml = `
     <div class="section-head">
@@ -722,6 +800,18 @@ function renderHomeOrBrowse(mode = "home") {
     </div>`
     : "";
 
+  const newArrivalsItems = state.products.filter((p) => p.newArrival || p.featured).slice(0, 8);
+  const newArrivalsHtml =
+    mode === "home" && !state.filters.search && newArrivalsItems.length
+      ? `
+      <div class="section-head">
+        <h2>✨ ${escapeHtml(t("newArrivals"))}</h2>
+        <button type="button" class="link-btn" style="color:var(--electric-blue);font-weight:700" data-action="filter-tab" data-tab="featured">View All →</button>
+      </div>
+      <div class="h-scroll-row">${newArrivalsItems.map(renderProductCard).join("")}</div>
+    `
+      : "";
+
   const toolbar = `
     <div class="filter-toolbar" id="catalogSection">
       <div class="chips-row">
@@ -738,6 +828,7 @@ function renderHomeOrBrowse(mode = "home") {
               `<button type="button" class="chip ${state.filters.tab === k ? "active" : ""}" data-action="filter-tab" data-tab="${k}">${lbl}</button>`
           )
           .join("")}
+        <button type="button" class="chip ${state.filters.inStockOnly ? "active" : ""}" data-action="toggle-instock">✓ In Stock Only</button>
       </div>
       <select id="sortSelect" class="glass-select" aria-label="Sort products">
         <option value="newest" ${state.filters.sort === "newest" ? "selected" : ""}>Newest</option>
@@ -748,8 +839,24 @@ function renderHomeOrBrowse(mode = "home") {
     </div>
   `;
 
+  const skeletonHtml = `
+    <div class="product-grid">
+      ${Array.from({ length: 8 })
+        .map(
+          () => `
+        <div class="skeleton-card">
+          <div class="skeleton-block" style="height:150px;margin-bottom:10px"></div>
+          <div class="skeleton-block" style="height:12px;width:45%;margin-bottom:8px"></div>
+          <div class="skeleton-block" style="height:16px;width:85%;margin-bottom:10px"></div>
+          <div class="skeleton-block" style="height:24px;width:55%"></div>
+        </div>`
+        )
+        .join("")}
+    </div>
+  `;
+
   const catalogBody = state.loading
-    ? `<div class="empty-box"><p>Loading live MY Shop catalog…</p></div>`
+    ? skeletonHtml
     : filtered.length === 0
     ? `
       <div class="empty-box">
@@ -782,7 +889,7 @@ function renderHomeOrBrowse(mode = "home") {
       </div>`
       : "";
 
-  return `${guestStrip}${popularRow}${heroHtml}${bannerRow}${categoryCardsHtml}${flashSectionHtml}${spotlightHtml}${recentHtml}${toolbar}${catalogBody}${brandsHtml}${reviewsHtml}`;
+  return `${guestStrip}${popularRow}${heroHtml}${bannerRow}${categoryCardsHtml}${flashSectionHtml}${spotlightHtml}${newArrivalsHtml}${recentHtml}${toolbar}${catalogBody}${brandsHtml}${reviewsHtml}`;
 }
 
 function renderDealsView() {
@@ -1233,14 +1340,19 @@ function renderOrdersView() {
       </div>
     `;
   }
+  const orderSteps = ["Pending", "Confirmed", "Processing", "Shipped", "Delivered"];
   return `
     <div class="section-head">
       <h2>📦 ${t("myOrders")}</h2>
       <button type="button" class="btn-outline sm" data-action="refresh-orders">↻ Refresh</button>
     </div>
     ${state.orders
-      .map(
-        (o) => `
+      .map((o) => {
+        const st = String(o.orderStatus || "Pending");
+        const isTerminalNeg = ["Cancelled", "Returned", "Refunded"].includes(st);
+        const mappedSt = st === "Out for Delivery" ? "Shipped" : st;
+        const stepIdx = orderSteps.indexOf(mappedSt);
+        return `
       <div class="panel-card">
         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
           <div>
@@ -1248,18 +1360,30 @@ function renderOrdersView() {
             <p class="small muted">${escapeHtml(o.createdAt ? new Date(o.createdAt).toLocaleString() : "")}</p>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <span class="hero-badge" style="margin:0">${escapeHtml(o.orderStatus || "Pending")}</span>
+            <span class="hero-badge" style="margin:0;${isTerminalNeg ? "background:#ef4444" : ""}">${escapeHtml(st)}</span>
             <strong>${money(o.totalAmount)}</strong>
           </div>
         </div>
+        ${
+          !isTerminalNeg
+            ? `<div class="order-stepper">
+                ${orderSteps
+                  .map(
+                    (stepLabel, idx) =>
+                      `<div class="order-step ${idx <= Math.max(0, stepIdx) ? "done" : ""}">${idx <= Math.max(0, stepIdx) ? "✓ " : ""}${stepLabel}</div>`
+                  )
+                  .join("")}
+               </div>`
+            : ""
+        }
         <p class="small">${escapeHtml(o.itemsSummary || "")}</p>
         <p class="small muted" style="margin-top:4px">
           Payment: ${escapeHtml(o.paymentMethod)} (${escapeHtml(o.paymentStatus)}) • Ship to: ${escapeHtml(o.shippingAddress)}
         </p>
         ${o.trackingCode ? `<p class="small" style="color:var(--electric-blue);margin-top:4px">Tracking Code: ${escapeHtml(o.trackingCode)}</p>` : ""}
       </div>
-    `
-      )
+    `;
+      })
       .join("")}
   `;
 }
@@ -1323,15 +1447,25 @@ function renderProfileView() {
     </div>
 
     <div class="panel-card">
-      <h3>🔔 Recent Notifications</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+        <h3>🔔 Recent Notifications</h3>
+        ${
+          state.notifications.some((n) => !n.read)
+            ? `<button type="button" class="btn-outline sm" data-action="mark-notifs-read">Mark All Read</button>`
+            : ""
+        }
+      </div>
       ${
         state.notifications.length
           ? state.notifications
-              .slice(0, 8)
+              .slice(0, 12)
               .map(
                 (n) => `
-          <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
-            <strong>${escapeHtml(n.title)}</strong>
+          <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);opacity:${n.read ? "0.7" : "1"}">
+            <div style="display:flex;justify-content:space-between;gap:8px">
+              <strong>${!n.read ? "🔵 " : ""}${escapeHtml(n.title)}</strong>
+              <small class="muted">${escapeHtml(n.createdAt ? new Date(n.createdAt).toLocaleDateString() : "")}</small>
+            </div>
             <p class="small muted">${escapeHtml(n.body)}</p>
           </div>`
               )
@@ -1550,6 +1684,49 @@ function closeModal() {
   document.getElementById("modalOverlay").innerHTML = "";
 }
 
+function renderModalReviewsHtml(product) {
+  const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+  return `
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-glass)">
+      <h3 style="font-size:1rem;margin-bottom:8px">⭐ Customer Reviews (${product.reviewCount || reviews.length})</h3>
+      ${
+        reviews.length
+          ? `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+              ${reviews
+                .slice(0, 6)
+                .map(
+                  (r) => `
+                <div class="panel-card" style="padding:10px;margin:0">
+                  <div style="display:flex;justify-content:space-between;font-size:.82rem">
+                    <strong>${escapeHtml(r.author || r.authorName || "Verified Buyer")}</strong>
+                    <span style="color:var(--amber)">${"★".repeat(Math.min(5, Math.max(1, Number(r.rating || 5))))}</span>
+                  </div>
+                  <p class="small muted" style="margin-top:4px">${escapeHtml(r.comment || "")}</p>
+                </div>`
+                )
+                .join("")}
+            </div>`
+          : `<p class="small muted" style="margin-bottom:10px">No reviews yet. Be the first to review this item!</p>`
+      }
+      <form id="productReviewForm" class="form-stack">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="revRatingInput" class="glass-select" style="width:auto">
+            <option value="5">5 ★ Excellent</option>
+            <option value="4">4 ★ Great</option>
+            <option value="3">3 ★ Good</option>
+            <option value="2">2 ★ Fair</option>
+            <option value="1">1 ★ Poor</option>
+          </select>
+          <input type="text" id="revCommentInput" class="glass-input" style="flex:1;min-width:180px" placeholder="${
+            state.customer ? "Share your experience with this product…" : "Sign in to submit a verified review"
+          }" required minlength="3" />
+          <button type="submit" class="btn-outline sm">${state.customer ? "Post Review" : "Sign In & Review"}</button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
 function openProductModal(productId) {
   const p = state.products.find((x) => x.id === productId);
   if (!p) return;
@@ -1558,15 +1735,22 @@ function openProductModal(productId) {
   state.recentlyViewedIds = [p.id, ...state.recentlyViewedIds.filter((id) => id !== p.id)].slice(0, 10);
   saveJsonStorage(STORAGE_RECENT, state.recentlyViewedIds);
 
+  state.selectedDetailColor = (p.colors && p.colors[0]) || "";
+  state.selectedDetailSize = (p.sizes && p.sizes[0]) || "";
+
   const images = [p.mainImageUrl, ...(p.imageUrls || [])].filter((u, idx, arr) => isSafeHttpUrl(u) && arr.indexOf(u) === idx);
   const title = state.lang === "BN" && p.nameBn ? p.nameBn : p.name;
   const outOfStock = !p.available || Number(p.stock || 0) <= 0;
   const specsHtml =
     Array.isArray(p.specs) && p.specs.length
-      ? `<div class="panel-card" style="padding:10px;margin:6px 0">
+      ? `<div class="panel-card" style="padding:10px;margin:8px 0">
           ${p.specs.map((s) => `<div class="summary-line" style="margin:4px 0;font-size:.82rem"><span class="muted">${escapeHtml(s.label)}</span><strong>${escapeHtml(s.value)}</strong></div>`).join("")}
          </div>`
       : "";
+
+  const localRelated = state.products
+    .filter((x) => x.id !== p.id && x.categoryId === p.categoryId)
+    .slice(0, 4);
 
   const modal = document.getElementById("modalOverlay");
   modal.innerHTML = `
@@ -1584,10 +1768,10 @@ function openProductModal(productId) {
           }
           ${
             images.length > 1
-              ? `<div class="thumb-strip">${images
+              ? `<div class="thumb-strip" id="detailThumbStrip">${images
                   .map(
                     (url, i) =>
-                      `<img src="${escapeHtml(url)}" class="${i === 0 ? "active" : ""}" onclick="document.getElementById('detailMainImg').src='${escapeHtml(url)}'" />`
+                      `<img src="${escapeHtml(url)}" class="${i === 0 ? "active" : ""}" data-detail-thumb="${escapeHtml(url)}" />`
                   )
                   .join("")}</div>`
               : ""
@@ -1596,7 +1780,7 @@ function openProductModal(productId) {
         </div>
         <div class="form-stack">
           <h2>${escapeHtml(title)}</h2>
-          <div class="rating-line">★ ${Number(p.rating || 4.8).toFixed(1)} (${p.reviewCount || 0} reviews) • ${p.freeDelivery ? "🚚 Free Delivery" : "Fast Delivery"}</div>
+          <div class="rating-line" id="detailRatingSummary">★ ${Number(p.rating || 4.8).toFixed(1)} (${p.reviewCount || 0} reviews) • ${p.freeDelivery ? "🚚 Free Delivery" : "Fast Delivery"}</div>
           <div class="price-row">
             <span class="price-now" style="font-size:1.45rem">${money(p.price)}</span>
             ${p.originalPrice > p.price ? `<span class="price-old">${money(p.originalPrice)}</span>` : ""}
@@ -1607,12 +1791,35 @@ function openProductModal(productId) {
 
           ${
             p.colors?.length
-              ? `<label><span>Color</span><select id="detailColor" class="glass-select">${p.colors.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select></label>`
+              ? `<div>
+                  <span class="small muted" style="display:block;margin-bottom:4px">Color: <strong id="selectedColorLbl">${escapeHtml(state.selectedDetailColor)}</strong></span>
+                  <div class="swatch-row">
+                    ${p.colors
+                      .map(
+                        (c) => `
+                      <button type="button" class="swatch-pill ${c === state.selectedDetailColor ? "active" : ""}" data-pick-color="${escapeHtml(c)}">
+                        <span class="swatch-dot" style="background:${colorNameToHex(c)}"></span>
+                        <span>${escapeHtml(c)}</span>
+                      </button>`
+                      )
+                      .join("")}
+                  </div>
+                </div>`
               : ""
           }
           ${
             p.sizes?.length
-              ? `<label><span>Variant / Size</span><select id="detailSize" class="glass-select">${p.sizes.map((s) => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("")}</select></label>`
+              ? `<div>
+                  <span class="small muted" style="display:block;margin-bottom:4px">Variant / Size: <strong id="selectedSizeLbl">${escapeHtml(state.selectedDetailSize)}</strong></span>
+                  <div class="swatch-row">
+                    ${p.sizes
+                      .map(
+                        (s) => `
+                      <button type="button" class="swatch-pill ${s === state.selectedDetailSize ? "active" : ""}" data-pick-size="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+                      )
+                      .join("")}
+                  </div>
+                </div>`
               : ""
           }
 
@@ -1626,22 +1833,114 @@ function openProductModal(productId) {
           </div>
         </div>
       </div>
+      <div id="detailReviewsMount">${renderModalReviewsHtml(p)}</div>
+      <div id="detailRelatedMount">
+        ${renderModalRelatedHtml(localRelated)}
+      </div>
     </div>
   `;
   modal.classList.remove("hidden");
 
+  modal.querySelectorAll("[data-detail-thumb]").forEach((imgEl) => {
+    imgEl.onclick = () => {
+      const mainImg = document.getElementById("detailMainImg");
+      if (mainImg) mainImg.src = imgEl.getAttribute("data-detail-thumb");
+      modal.querySelectorAll("[data-detail-thumb]").forEach((tEl) => tEl.classList.remove("active"));
+      imgEl.classList.add("active");
+    };
+  });
+
+  modal.querySelectorAll("[data-pick-color]").forEach((btn) => {
+    btn.onclick = () => {
+      state.selectedDetailColor = btn.getAttribute("data-pick-color") || "";
+      modal.querySelectorAll("[data-pick-color]").forEach((x) => x.classList.remove("active"));
+      btn.classList.add("active");
+      const lbl = document.getElementById("selectedColorLbl");
+      if (lbl) lbl.textContent = state.selectedDetailColor;
+    };
+  });
+
+  modal.querySelectorAll("[data-pick-size]").forEach((btn) => {
+    btn.onclick = () => {
+      state.selectedDetailSize = btn.getAttribute("data-pick-size") || "";
+      modal.querySelectorAll("[data-pick-size]").forEach((x) => x.classList.remove("active"));
+      btn.classList.add("active");
+      const lbl = document.getElementById("selectedSizeLbl");
+      if (lbl) lbl.textContent = state.selectedDetailSize;
+    };
+  });
+
   document.getElementById("detailAddCartBtn").onclick = () => {
-    const c = document.getElementById("detailColor")?.value || "";
-    const s = document.getElementById("detailSize")?.value || "";
-    addToCart(p.id, c, s);
+    addToCart(p.id, state.selectedDetailColor, state.selectedDetailSize);
     closeModal();
   };
   document.getElementById("detailBuyNowBtn").onclick = () => {
-    const c = document.getElementById("detailColor")?.value || "";
-    const s = document.getElementById("detailSize")?.value || "";
-    addToCart(p.id, c, s);
+    addToCart(p.id, state.selectedDetailColor, state.selectedDetailSize);
     closeModal();
     startCheckoutFlow();
+  };
+
+  bindModalReviewForm(p);
+
+  // Fetch freshest product detail & related items from backend
+  api(`/api/public/products/${encodeURIComponent(p.id)}`)
+    .then((detail) => {
+      if (!document.getElementById("detailReviewsMount")) return;
+      if (detail?.product) {
+        p.reviews = detail.product.reviews || p.reviews;
+        p.rating = detail.product.rating ?? p.rating;
+        p.reviewCount = detail.product.reviewCount ?? p.reviewCount;
+        document.getElementById("detailReviewsMount").innerHTML = renderModalReviewsHtml(p);
+        bindModalReviewForm(p);
+      }
+      if (Array.isArray(detail?.related) && detail.related.length) {
+        document.getElementById("detailRelatedMount").innerHTML = renderModalRelatedHtml(detail.related);
+      }
+    })
+    .catch(() => {});
+}
+
+function renderModalRelatedHtml(relatedList) {
+  if (!relatedList || !relatedList.length) return "";
+  return `
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-glass)">
+      <h3 style="font-size:1rem;margin-bottom:8px">🛍️ Related Products</h3>
+      <div class="h-scroll-row">${relatedList.map(renderProductCard).join("")}</div>
+    </div>
+  `;
+}
+
+function bindModalReviewForm(product) {
+  const form = document.getElementById("productReviewForm");
+  if (!form) return;
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    if (!state.customer) {
+      openAuthModal("login", () => openProductModal(product.id));
+      return;
+    }
+    const rating = Number(document.getElementById("revRatingInput")?.value || 5);
+    const comment = document.getElementById("revCommentInput")?.value.trim() || "";
+    try {
+      const res = await api("/api/customer/reviews", {
+        method: "POST",
+        body: JSON.stringify({ productId: product.id, rating, comment }),
+      });
+      product.reviews = [res.review, ...(product.reviews || [])];
+      product.rating = res.rating;
+      product.reviewCount = res.reviewCount;
+      toast("Thank you! Review published.");
+      const summary = document.getElementById("detailRatingSummary");
+      if (summary) summary.innerHTML = `★ ${Number(product.rating).toFixed(1)} (${product.reviewCount} reviews) • ${product.freeDelivery ? "🚚 Free Delivery" : "Fast Delivery"}`;
+      const mount = document.getElementById("detailReviewsMount");
+      if (mount) {
+        mount.innerHTML = renderModalReviewsHtml(product);
+        bindModalReviewForm(product);
+      }
+      render();
+    } catch (err) {
+      toast(err.message, true);
+    }
   };
 }
 
@@ -2268,8 +2567,38 @@ document.addEventListener("click", async (e) => {
   } else if (action === "filter-tab") {
     state.filters.tab = actionEl.getAttribute("data-tab") || "all";
     render();
+  } else if (action === "toggle-instock") {
+    state.filters.inStockOnly = !state.filters.inStockOnly;
+    render();
+  } else if (action === "hero-slide") {
+    state.heroSlideIdx = Number(actionEl.getAttribute("data-idx") || 0);
+    render();
+  } else if (action === "hero-cta") {
+    const url = actionEl.getAttribute("data-url") || "#catalog";
+    if (url === "#catalog") {
+      document.getElementById("catalogSection")?.scrollIntoView({ behavior: "smooth" });
+    } else if (url === "/explore") {
+      state.view = "categories";
+      render();
+    } else if (url === "/fun_zone") {
+      state.view = "funzone";
+      render();
+    } else if (isSafeHttpUrl(url)) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      document.getElementById("catalogSection")?.scrollIntoView({ behavior: "smooth" });
+    }
+  } else if (action === "mark-notifs-read") {
+    try {
+      await api("/api/customer/notifications/read-all", { method: "PATCH" });
+      state.notifications = state.notifications.map((n) => ({ ...n, read: true }));
+      toast("All notifications marked as read.");
+      render();
+    } catch (err) {
+      toast(err.message, true);
+    }
   } else if (action === "reset-filters") {
-    state.filters = { search: "", category: "ALL", brand: "", tab: "all", sort: "newest" };
+    state.filters = { search: "", category: "ALL", brand: "", tab: "all", sort: "newest", inStockOnly: false };
     const inp = document.getElementById("globalSearchInput");
     const minp = document.getElementById("mobileSearchInput");
     if (inp) inp.value = "";

@@ -78,6 +78,65 @@ router.put("/site-config", async (req, res, next) => {
   }
 });
 
+// ======================== HOMEPAGE BANNERS (site_config/main.banners) ========================
+
+router.post("/banners", async (req, res, next) => {
+  try {
+    const b = req.body || {};
+    const title = String(b.title || "").trim().slice(0, 120);
+    if (!title) return res.status(400).json({ error: "Banner title is required." });
+
+    const id = b.id ? sanitizeId(b.id, "bnr") : `bnr_${Date.now()}`;
+    const banner = {
+      id,
+      badge: String(b.badge || "SPECIAL OFFER").trim().slice(0, 40),
+      title,
+      subtitle: String(b.subtitle || "").trim().slice(0, 220),
+      imageUrl: isValidHttpUrl(b.imageUrl) ? b.imageUrl.trim() : "",
+      linkUrl: String(b.linkUrl || "/deals").trim().slice(0, 300),
+      ctaText: String(b.ctaText || "Explore Now").trim().slice(0, 40),
+      startDate: String(b.startDate || "").trim().slice(0, 40),
+      endDate: String(b.endDate || "").trim().slice(0, 40),
+      active: b.active !== false,
+    };
+
+    const db = getDb();
+    const ref = db.collection("site_config").doc("main");
+    const snap = await ref.get();
+    const existing = snap.exists && Array.isArray(snap.data().banners) ? snap.data().banners : [];
+    const idx = existing.findIndex((x) => x.id === id);
+    const nextBanners = idx >= 0 ? existing.map((x, i) => (i === idx ? banner : x)) : [...existing, banner];
+
+    await ref.set(
+      { banners: nextBanners.slice(0, 12), updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    await logAdminAudit(req, "BANNER_UPSERT", `site_config/main/banners/${id}`, { title: banner.title });
+    res.status(201).json({ ok: true, banner, banners: nextBanners });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/banners/:id", async (req, res, next) => {
+  try {
+    const id = sanitizeId(req.params.id, "bnr");
+    const db = getDb();
+    const ref = db.collection("site_config").doc("main");
+    const snap = await ref.get();
+    const existing = snap.exists && Array.isArray(snap.data().banners) ? snap.data().banners : [];
+    const nextBanners = existing.filter((x) => x.id !== id);
+    await ref.set(
+      { banners: nextBanners, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    await logAdminAudit(req, "BANNER_DELETE", `site_config/main/banners/${id}`);
+    res.json({ deleted: true, id, banners: nextBanners });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ======================== SOCIAL SUPPORT MANAGER (social_support_settings) ========================
 
 router.get("/social-support", async (_req, res, next) => {

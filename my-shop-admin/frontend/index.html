@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MY Shop Super Admin</title>
   <link rel="icon" type="image/svg+xml" href="/admin/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/admin/styles.css" />
 </head>
 <body>
@@ -63,6 +66,7 @@
 
   <!-- MAIN SUPER ADMIN SHELL -->
   <div id="adminShell" class="admin-shell hidden">
+    <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
     <aside id="sidebar" class="sidebar glass-panel">
       <div class="sidebar-header">
         <img src="/admin/logo.svg" alt="MY Shop" class="brand-logo-sm" />
@@ -74,18 +78,23 @@
       </div>
 
       <nav class="sidebar-nav" id="sidebarNav">
+        <div class="sidebar-group-label">COMMERCE</div>
         <button data-tab="dashboard" class="nav-item active">📊 <span>Dashboard</span></button>
         <button data-tab="products" class="nav-item">📦 <span>Products & Images</span></button>
         <button data-tab="categories" class="nav-item">🗂️ <span>Categories & Brands</span></button>
         <button data-tab="orders" class="nav-item">🚚 <span>Orders & Invoices</span></button>
         <button data-tab="customers" class="nav-item">👥 <span>Customers & Support</span></button>
         <button data-tab="payments" class="nav-item">💳 <span>Payments & Refunds</span></button>
+
+        <div class="sidebar-group-label">GROWTH & CMS</div>
         <button data-tab="marketing" class="nav-item">⚡ <span>Flash Sales & Coupons</span></button>
-        <button data-tab="funzone" class="nav-item">🎰 <span>MY Fun Zone</span></button>
-        <button data-tab="ai" class="nav-item">🤖 <span>AI Assistant</span></button>
-        <button data-tab="cms" class="nav-item">🎨 <span>Website Customization</span></button>
+        <button data-tab="cms" class="nav-item">🎨 <span>Website & Banners</span></button>
         <button data-tab="social" class="nav-item">💬 <span>Social Support</span></button>
         <button data-tab="popups" class="nav-item">📢 <span>3D Popups & Notices</span></button>
+        <button data-tab="funzone" class="nav-item">🎰 <span>MY Fun Zone</span></button>
+        <button data-tab="ai" class="nav-item">🤖 <span>AI Assistant</span></button>
+
+        <div class="sidebar-group-label">SYSTEM</div>
         <button data-tab="sellers" class="nav-item">🏪 <span>Sellers & Delivery</span></button>
         <button data-tab="reviews" class="nav-item">⭐ <span>Reviews & Content</span></button>
         <button data-tab="notifications" class="nav-item">🔔 <span>Notifications</span></button>
@@ -101,13 +110,15 @@
     <div class="main-area">
       <header class="topbar glass-panel">
         <div class="topbar-left">
-          <button type="button" id="mobileMenuBtn" class="icon-btn mobile-only">☰</button>
+          <button type="button" id="mobileMenuBtn" class="icon-btn mobile-only" aria-label="Open menu">☰</button>
           <div>
             <h2 id="pageTitle">Dashboard Overview</h2>
             <small id="firebaseStatusBadge" class="status-pill">Connecting to backend…</small>
           </div>
         </div>
         <div class="topbar-right">
+          <input type="search" id="topbarQuickSearch" class="topbar-search" placeholder="Search products or orders (Enter)…" aria-label="Quick search" />
+          <a href="/" target="_blank" rel="noopener noreferrer" class="btn-outline small" style="text-decoration:none">🌐 Store</a>
           <button type="button" id="refreshBtn" class="btn-outline small">↻ Sync</button>
           <button type="button" id="themeToggleBtn" class="btn-outline small">🌓 Theme</button>
           <span id="adminUserChip" class="admin-chip">superadmin</span>
@@ -118,6 +129,9 @@
       <main id="workspace" class="workspace"></main>
     </div>
   </div>
+
+  <!-- Admin Detail Modal (Order Items Breakdown, etc.) -->
+  <div id="adminModalOverlay" class="modal-backdrop hidden"></div>
 
   <script src="/admin/app.js" defer></script>
 </body>

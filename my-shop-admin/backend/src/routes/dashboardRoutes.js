@@ -38,6 +38,15 @@ router.get("/", async (req, res, next) => {
 
     const productSales = new Map();
     const dailyMap = new Map();
+    const orderStatusBreakdown = {
+      Pending: 0,
+      Confirmed: 0,
+      Processing: 0,
+      Shipped: 0,
+      "Out for Delivery": 0,
+      Delivered: 0,
+      Cancelled: 0,
+    };
 
     for (const o of orders) {
       const status = String(o.orderStatus || "Pending");
@@ -45,6 +54,10 @@ router.get("/", async (req, res, next) => {
       const amount = Number(o.totalAmount || 0);
       const createdIso = toIsoDate(o.createdAt);
       const createdMs = createdIso ? new Date(createdIso).getTime() : 0;
+
+      if (Object.prototype.hasOwnProperty.call(orderStatusBreakdown, status)) {
+        orderStatusBreakdown[status] += 1;
+      }
 
       if (status === "Pending") pendingOrders++;
       if (status === "Delivered") completedOrders++;
@@ -80,8 +93,8 @@ router.get("/", async (req, res, next) => {
             unitsSold: 0,
             revenue: 0,
           };
-          const qty = Number(item.qty || 1);
-          const price = Number(item.price || 0);
+          const qty = Number(item.qty || item.quantity || 1);
+          const price = Number(item.price || item.unitPrice || 0);
           prev.unitsSold += qty;
           prev.revenue += qty * price;
           productSales.set(pid, prev);
@@ -132,6 +145,9 @@ router.get("/", async (req, res, next) => {
       createdAt: toIsoDate(d.data().createdAt),
     }));
 
+    const validOrderCount = Math.max(0, orders.length - cancelledOrders);
+    const avgOrderValue = validOrderCount > 0 ? Math.round(totalRevenue / validOrderCount) : 0;
+
     res.json({
       metrics: {
         totalProducts: products.length,
@@ -144,11 +160,13 @@ router.get("/", async (req, res, next) => {
         totalRevenue,
         todayRevenue,
         monthlyRevenue,
+        avgOrderValue,
         pendingPayments,
         totalSellers: sellersSnap.size,
         lowStockCount: lowStockProducts.length,
         outOfStockCount: outOfStockProducts.length,
       },
+      orderStatusBreakdown,
       salesSeries,
       recentOrders,
       recentCustomers,

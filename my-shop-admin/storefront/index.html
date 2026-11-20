@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MY Shop — Shop Smart • Live Happy!</title>
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -44,6 +47,9 @@
         <button type="button" id="themeToggleBtn" class="pill-btn icon-pill" title="Light / Dark Mode">🌓</button>
         <button type="button" class="pill-btn desktop-only" data-nav="wishlist">
           ❤️ <span data-i18n="wishlist">Wishlist</span> (<span id="wishlistBadgeTop">0</span>)
+        </button>
+        <button type="button" class="pill-btn desktop-only" data-nav="profile" id="topNotifBtn" title="Notifications">
+          🔔 <span id="notifBadgeTop" class="count-badge hidden">0</span>
         </button>
         <button type="button" class="pill-btn" data-nav="cart" id="topCartBtn">
           🛒 <span class="desktop-only" data-i18n="cart">Cart</span> <span id="cartBadgeTop" class="count-badge">0</span>

@@ -265,7 +265,7 @@ router.get("/categories", async (_req, res, next) => {
 
 router.post("/categories", async (req, res, next) => {
   try {
-    const { titleEn, titleBn, description, iconName, imageUrl, orderIndex, enabled, subcategories } = req.body || {};
+    const { titleEn, titleBn, description, iconName, emoji, badgeText, imageUrl, orderIndex, enabled, subcategories } = req.body || {};
     if (!titleEn || !String(titleEn).trim()) return res.status(400).json({ error: "Category name required." });
     const id = sanitizeId(req.body.id || titleEn.toUpperCase(), "CAT");
     const payload = {
@@ -273,6 +273,8 @@ router.post("/categories", async (req, res, next) => {
       titleBn: String(titleBn || "").trim().slice(0, 80),
       description: String(description || "").trim().slice(0, 400),
       iconName: String(iconName || "Category").trim(),
+      emoji: String(emoji || "").trim().slice(0, 8),
+      badgeText: String(badgeText || "").trim().slice(0, 16),
       imageUrl: isValidHttpUrl(imageUrl) ? imageUrl.trim() : "",
       orderIndex: Math.round(toSafeNumber(orderIndex, 0, 0, 9999)),
       enabled: enabled !== false,

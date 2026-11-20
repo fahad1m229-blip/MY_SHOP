@@ -344,6 +344,99 @@ test("Admin login, Admin->Customer live catalog sync, Customer registration/cart
     const bootAfter = await (await fetch(`${baseUrl}/api/public/storefront-bootstrap`)).json();
     assert.equal(bootAfter.firebaseConnected, true);
     assert.equal(bootAfter.products.some((p) => p.id === "p_toy_1"), false);
+
+    // Dashboard metrics include avgOrderValue & orderStatusBreakdown
+    const dashData = await (
+      await fetch(`${baseUrl}/api/admin/dashboard`, { headers: { Cookie: cookiePair } })
+    ).json();
+    assert.ok(dashData.metrics.avgOrderValue >= 0);
+    assert.ok(dashData.orderStatusBreakdown && typeof dashData.orderStatusBreakdown.Pending === "number");
+
+    // Admin customer filter, insights (totalSpent/ordersCount) & PATCH update
+    const custList = await (
+      await fetch(`${baseUrl}/api/admin/customers?status=active`, { headers: { Cookie: cookiePair } })
+    ).json();
+    const targetCust = custList.items.find((c) => c.email === custEmail);
+    assert.ok(targetCust);
+
+    const patchCust = await fetch(`${baseUrl}/api/admin/customers/${targetCust.userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ displayName: "Fahad VIP", points: 320, walletBalance: 500 }),
+    });
+    assert.equal(patchCust.status, 200);
+
+    const custDetail = await (
+      await fetch(`${baseUrl}/api/admin/customers/${targetCust.userId}`, { headers: { Cookie: cookiePair } })
+    ).json();
+    assert.equal(custDetail.customer.displayName, "Fahad VIP");
+    assert.equal(custDetail.customer.points, 320);
+    assert.equal(custDetail.totalSpent, 6980);
+    assert.equal(custDetail.ordersCount, 1);
+
+    // Admin Homepage Banner CRUD -> reflected in storefront bootstrap
+    const addBanner = await fetch(`${baseUrl}/api/admin/cms/banners`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({
+        id: "ban_hero_test",
+        badge: "VIP LAUNCH",
+        title: "Autumn Flagship Showcase",
+        subtitle: "Extra 15% cashback via MYSHOP",
+        active: true,
+      }),
+    });
+    assert.equal(addBanner.status, 201);
+    const bootWithBanner = await (await fetch(`${baseUrl}/api/public/storefront-bootstrap`)).json();
+    assert.ok(bootWithBanner.siteConfig.banners.some((b) => b.id === "ban_hero_test"));
+
+    const delBanner = await fetch(`${baseUrl}/api/admin/cms/banners/ban_hero_test`, {
+      method: "DELETE",
+      headers: { Cookie: cookiePair },
+    });
+    assert.equal(delBanner.status, 200);
+
+    // Coupon expiration enforcement on customer checkout
+    const createExpCoupon = await fetch(`${baseUrl}/api/admin/marketing/coupons`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({
+        code: "OLDCODE99",
+        title: "Expired Promo",
+        discountType: "FIXED",
+        value: 500,
+        minSpend: 100,
+        expiresAt: "2020-01-01",
+      }),
+    });
+    assert.equal(createExpCoupon.status, 201);
+    const expiredOrderAttempt = await fetch(`${baseUrl}/api/customer/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: custCookie },
+      body: JSON.stringify({
+        items: [{ productId: prodId, quantity: 1 }],
+        shippingAddress: "Fahad, +8801700000000, House 12, Gulshan, Dhaka",
+        paymentMethod: "Cash on Delivery",
+        couponCode: "OLDCODE99",
+      }),
+    });
+    assert.equal(expiredOrderAttempt.status, 400);
+
+    // Customer submits product review & marks notifications read
+    const revRes = await fetch(`${baseUrl}/api/customer/reviews`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: custCookie },
+      body: JSON.stringify({ productId: prodId, rating: 5, comment: "Crystal clear ANC audio!" }),
+    });
+    assert.equal(revRes.status, 201);
+    const revJson = await revRes.json();
+    assert.equal(revJson.rating, 5);
+
+    const markReadRes = await fetch(`${baseUrl}/api/customer/notifications/read-all`, {
+      method: "PATCH",
+      headers: { Cookie: custCookie },
+    });
+    assert.equal(markReadRes.status, 200);
   }
 
   const logoutRes = await fetch(`${baseUrl}/api/admin/auth/logout`, {

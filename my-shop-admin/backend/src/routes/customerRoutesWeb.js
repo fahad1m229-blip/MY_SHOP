@@ -545,6 +545,12 @@ router.post("/orders", requireCustomerAuth, async (req, res, next) => {
         return res.status(400).json({ error: `Coupon "${cleanCoupon}" is invalid or expired.` });
       }
       const c = cSnap.data();
+      if (c.expiresAt) {
+        const expMs = Date.parse(c.expiresAt);
+        if (!Number.isNaN(expMs) && expMs < Date.now()) {
+          return res.status(400).json({ error: `Coupon "${cleanCoupon}" has expired.` });
+        }
+      }
       const minSpend = Number(c.minSpend || 0);
       if (subtotal < minSpend) {
         return res.status(400).json({ error: `Minimum spend for ${cleanCoupon} is ৳${minSpend}.` });
@@ -632,6 +638,71 @@ router.get("/notifications", requireCustomerAuth, async (req, res, next) => {
       .map((d) => ({ id: d.id, ...d.data(), createdAt: toIsoDate(d.data().createdAt) }))
       .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
     res.json({ items });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch("/notifications/read-all", requireCustomerAuth, async (req, res, next) => {
+  try {
+    const db = getDb();
+    const snap = await db.collection("users").doc(req.customerUser.uid).collection("notifications").where("read", "==", false).limit(50).get();
+    const batch = db.batch();
+    snap.docs.forEach((d) => batch.update(d.ref, { read: true }));
+    if (!snap.empty) await batch.commit();
+    res.json({ ok: true, marked: snap.size });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/reviews", requireCustomerAuth, async (req, res, next) => {
+  try {
+    const uid = req.customerUser.uid;
+    const productId = sanitizeId(req.body?.productId || "", "");
+    const rating = Math.max(1, Math.min(5, Math.round(Number(req.body?.rating || 5))));
+    const comment = String(req.body?.comment || "").trim().slice(0, 600);
+    if (!productId || comment.length < 3) {
+      return res.status(400).json({ error: "Product and review comment (min 3 chars) are required." });
+    }
+
+    const db = getDb();
+    const prodRef = db.collection("catalog_products").doc(productId);
+    const prodSnap = await prodRef.get();
+    if (!prodSnap.exists) return res.status(404).json({ error: "Product not found." });
+
+    const reviewEntry = {
+      id: `rev_${Date.now()}`,
+      userId: uid,
+      author: req.customerUser.displayName || "MY Shopper",
+      rating,
+      comment,
+      dateLabel: new Date().toISOString().slice(0, 10),
+    };
+
+    const existing = prodSnap.data() || {};
+    const nextReviews = [reviewEntry, ...(Array.isArray(existing.reviews) ? existing.reviews : [])].slice(0, 30);
+    const avgRating = Number(
+      (nextReviews.reduce((s, r) => s + Number(r.rating || 5), 0) / nextReviews.length).toFixed(1)
+    );
+    const nextCount = Math.max(nextReviews.length, Number(existing.reviewCount || 0) + 1);
+
+    await Promise.all([
+      db.collection("users").doc(uid).collection("reviews").doc(reviewEntry.id).set({
+        ...reviewEntry,
+        productId,
+        productName: existing.name || productId,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      }),
+      prodRef.update({
+        reviews: nextReviews,
+        rating: avgRating,
+        reviewCount: nextCount,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }),
+    ]);
+
+    res.status(201).json({ ok: true, review: reviewEntry, rating: avgRating, reviewCount: nextCount });
   } catch (err) {
     next(err);
   }

@@ -145,8 +145,19 @@ router.get("/coupons", async (_req, res, next) => {
 
 router.post("/coupons", async (req, res, next) => {
   try {
-    const { code, title, discountType, value, minSpend, maxDiscount, usageLimit, expiresLabel, active, bogoEnabled } =
-      req.body || {};
+    const {
+      code,
+      title,
+      discountType,
+      value,
+      minSpend,
+      maxDiscount,
+      usageLimit,
+      expiresLabel,
+      expiresAt,
+      active,
+      bogoEnabled,
+    } = req.body || {};
     const cleanCode = String(code || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
     if (!cleanCode || !title) return res.status(400).json({ error: "Coupon code and title required." });
     if (!["PERCENT", "FIXED", "FREE_DELIVERY"].includes(discountType)) {
@@ -161,6 +172,7 @@ router.post("/coupons", async (req, res, next) => {
       maxDiscount: toSafeNumber(maxDiscount, 0, 0, 1000000),
       usageLimit: Math.round(toSafeNumber(usageLimit, 1000, 1, 1000000)),
       expiresLabel: String(expiresLabel || "Limited Offer").trim().slice(0, 40),
+      expiresAt: String(expiresAt || "").trim().slice(0, 40),
       active: active !== false,
       bogoEnabled: Boolean(bogoEnabled),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
