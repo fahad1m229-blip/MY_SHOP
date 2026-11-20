@@ -385,4 +385,31 @@ router.post("/analytics", async (req, res, next) => {
   }
 });
 
+router.post("/newsletter", async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase().slice(0, 120);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+    if (!getFirebaseStatus().connected) {
+      return res.status(201).json({ ok: true, email, offline: true });
+    }
+    const docId = Buffer.from(email).toString("base64url").slice(0, 64);
+    await getDb()
+      .collection("newsletter_subscribers")
+      .doc(docId)
+      .set(
+        {
+          email,
+          source: "storefront",
+          subscribedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    res.status(201).json({ ok: true, email });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

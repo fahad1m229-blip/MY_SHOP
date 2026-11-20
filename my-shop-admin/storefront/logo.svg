@@ -1,14 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
   <defs>
-    <linearGradient id="myshopGrad" x1="12" y1="12" x2="108" y2="108" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#8B5CF6"/>
-      <stop offset="52%" stop-color="#00D4FF"/>
-      <stop offset="100%" stop-color="#FF2E93"/>
+    <linearGradient id="bagBodyGrad" x1="18" y1="30" x2="102" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#168BFF"/>
+      <stop offset="100%" stop-color="#8B20FF"/>
+    </linearGradient>
+    <linearGradient id="bagGlowBg" x1="10" y1="10" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#091747"/>
+      <stop offset="100%" stop-color="#050B2E"/>
+    </linearGradient>
+    <linearGradient id="handleGrad" x1="40" y1="14" x2="80" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#00E5FF"/>
     </linearGradient>
   </defs>
-  <rect x="8" y="8" width="104" height="104" rx="28" fill="#0B0718" stroke="url(#myshopGrad)" stroke-width="4"/>
-  <path d="M36 44C36 30.745 46.745 20 60 20C73.255 20 84 30.745 84 44" stroke="url(#myshopGrad)" stroke-width="6" stroke-linecap="round"/>
-  <rect x="26" y="42" width="68" height="54" rx="14" fill="url(#myshopGrad)" fill-opacity="0.16" stroke="url(#myshopGrad)" stroke-width="4"/>
-  <path d="M40 78V57L50 71L60 57V78" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M70 57L76 68L82 57M76 68V78" stroke="#00D4FF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="6" y="6" width="108" height="108" rx="30" fill="url(#bagGlowBg)" stroke="url(#bagBodyGrad)" stroke-width="3.5"/>
+  <path d="M41 42C41 27.6 49.5 18 60 18C70.5 18 79 27.6 79 42" stroke="url(#handleGrad)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M25 44C25 39.6 28.6 36 33 36H87C91.4 36 95 39.6 95 44L99 91C99.5 97.2 94.6 102 88.4 102H31.6C25.4 102 20.5 97.2 21 91L25 44Z" fill="url(#bagBodyGrad)"/>
+  <path d="M25 44C25 39.6 28.6 36 33 36H87C91.4 36 95 39.6 95 44L99 91C99.5 97.2 94.6 102 88.4 102H31.6C25.4 102 20.5 97.2 21 91L25 44Z" fill="white" fill-opacity="0.08"/>
+  <path d="M41 85V55L60 73L79 55V85" stroke="#FFFFFF" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

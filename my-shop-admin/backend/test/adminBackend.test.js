@@ -41,22 +41,27 @@ test("Routing serves Customer Website at /, Admin Panel ONLY at /admin, and JSON
   const hJson = await health.json();
   assert.equal(hJson.status, "ok");
 
-  // "/" MUST open Customer Website, NOT Admin Panel
+  // "/" MUST open Customer Website with no-cache headers, NOT Admin Panel
   const customerHomeRes = await fetch(`${baseUrl}/`);
   assert.equal(customerHomeRes.status, 200);
+  assert.ok((customerHomeRes.headers.get("cache-control") || "").includes("no-cache"));
   const customerHtml = await customerHomeRes.text();
   assert.ok(customerHtml.includes("MY Shop — Shop Smart • Live Happy!"));
   assert.ok(customerHtml.includes("storefrontMain"));
   assert.equal(customerHtml.includes("MY Shop Super Admin"), false);
 
-  // Storefront SPA deep route must serve Customer Website
-  const customerDeepRes = await fetch(`${baseUrl}/cart`);
-  assert.equal(customerDeepRes.status, 200);
-  const customerDeepHtml = await customerDeepRes.text();
-  assert.ok(customerDeepHtml.includes("storefrontMain"));
+  // Storefront SPA deep routes must serve Customer Website
+  for (const spaPath of ["/explore", "/wishlist", "/cart", "/orders", "/account"]) {
+    const customerDeepRes = await fetch(`${baseUrl}${spaPath}`);
+    assert.equal(customerDeepRes.status, 200);
+    const customerDeepHtml = await customerDeepRes.text();
+    assert.ok(customerDeepHtml.includes("storefrontMain"));
+  }
 
   // "/admin" and "/admin/*" MUST serve Admin Dashboard without Firebase Client SDK
-  const adminHtml = await (await fetch(`${baseUrl}/admin`)).text();
+  const adminRes = await fetch(`${baseUrl}/admin`);
+  assert.ok((adminRes.headers.get("cache-control") || "").includes("no-cache"));
+  const adminHtml = await adminRes.text();
   assert.ok(adminHtml.includes("MY Shop Super Admin"));
   assert.equal(adminHtml.includes("firebaseConfig"), false);
   assert.equal(adminHtml.includes("initializeApp"), false);
@@ -438,6 +443,24 @@ test("Admin login, Admin->Customer live catalog sync, Customer registration/cart
     });
     assert.equal(markReadRes.status, 200);
   }
+
+  // Newsletter subscription validation and success
+  const badNewsRes = await fetch(`${baseUrl}/api/public/newsletter`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "not-an-email" }),
+  });
+  assert.equal(badNewsRes.status, 400);
+
+  const okNewsRes = await fetch(`${baseUrl}/api/public/newsletter`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "vip-shopper@example.com" }),
+  });
+  assert.equal(okNewsRes.status, 201);
+  const okNewsJson = await okNewsRes.json();
+  assert.equal(okNewsJson.ok, true);
+  assert.equal(okNewsJson.email, "vip-shopper@example.com");
 
   const logoutRes = await fetch(`${baseUrl}/api/admin/auth/logout`, {
     method: "POST",

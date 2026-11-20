@@ -76,17 +76,41 @@ function createApp() {
 
   // 1. Admin Panel Frontend SPA ONLY at /admin and /admin/* (ZERO Firebase Client SDK in frontend)
   const adminFrontendDir = path.resolve(__dirname, "../../frontend");
-  app.use("/admin", express.static(adminFrontendDir, { index: "index.html" }));
+  app.use(
+    "/admin",
+    express.static(adminFrontendDir, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(".html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=300, must-revalidate");
+        }
+      },
+    })
+  );
   app.get(["/admin", "/admin/*"], (req, res) => {
     if (path.extname(req.path)) {
       return res.status(404).json({ error: "Admin asset not found." });
     }
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     return res.sendFile(path.join(adminFrontendDir, "index.html"));
   });
 
   // 2. Customer Shopping Website at "/" and storefront SPA routes
   const storefrontDir = path.resolve(__dirname, "../../storefront");
-  app.use(express.static(storefrontDir, { index: "index.html" }));
+  app.use(
+    express.static(storefrontDir, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(".html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=300, must-revalidate");
+        }
+      },
+    })
+  );
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api") || req.path === "/admin" || req.path.startsWith("/admin/")) {
       return next();
@@ -94,6 +118,7 @@ function createApp() {
     if (path.extname(req.path)) {
       return res.status(404).json({ error: "Asset not found." });
     }
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     return res.sendFile(path.join(storefrontDir, "index.html"));
   });
 

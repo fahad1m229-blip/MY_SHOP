@@ -25,14 +25,23 @@ const I18N = {
     todaysDeals: "Today's Deals",
     trendingNow: "Trending Now",
     featured: "Featured",
+    featuredProducts: "Featured Products",
     trending: "Trending",
     bestSeller: "Best Sellers",
     newArrivals: "New Arrivals",
+    recommended: "Recommended For You",
     recentlyViewed: "Recently Viewed",
+    specialOffers: "Special Offers & Coupons",
+    shopByCategory: "Shop by Category",
+    seeAll: "See All",
     freeDelivery: "Free Delivery",
     popularBrands: "Popular Brands",
     customerReviews: "Verified Customer Reviews",
+    newsletterTitle: "Unlock VIP Flash Drops & Promo Codes",
+    newsletterSub: "Subscribe for early access to limited deals, new arrivals & instant coupon alerts.",
+    subscribe: "Subscribe",
     addToCart: "Add to Cart",
+    quickView: "Quick View",
     outOfStock: "Out of Stock",
     buyNow: "Buy Now",
     emptyCatalogTitle: "No published products match right now",
@@ -56,24 +65,33 @@ const I18N = {
     cart: "কার্ট",
     signIn: "সাইন ইন",
     guestBanner: "গেস্ট ব্রাউজিং চালু — লগইন ছাড়াই সব প্রোডাক্ট দেখুন ও কার্টে যোগ করুন!",
-    heroBadge: "সাইবার মেগা ডিল • ৪০% পর্যন্ত ছাড়",
+    heroBadge: "সাইবার মেগা ডিল • ৭০% পর্যন্ত ছাড়",
     heroTitle: "MY Shop-এ স্মার্ট শপিং, হ্যাপি লাইফ",
     heroSub: "MYSHOP10 কুপনে ১০% ছাড় • ৳২,৫০০+ অর্ডারে ফ্রি ডেলিভারি • লাইভ স্টক ও ফান জোন রিওয়ার্ড!",
-    shopNow: "ফ্ল্যাশ ডিল দেখুন",
+    shopNow: "এখনই কিনুন",
     viewDeals: "অফার ও কুপন",
     allCategories: "সব ১৬টি ক্যাটাগরি",
     flashSale: "ফ্ল্যাশ সেল",
     todaysDeals: "আজকের সেরা অফার",
     trendingNow: "ট্রেন্ডিং পণ্য",
     featured: "ফিচার্ড",
+    featuredProducts: "ফিচার্ড পণ্যসমূহ",
     trending: "ট্রেন্ডিং",
     bestSeller: "বেস্ট সেলার",
     newArrivals: "নতুন কালেকশন",
+    recommended: "আপনার জন্য বাছাইকৃত",
     recentlyViewed: "সম্প্রতি দেখেছেন",
+    specialOffers: "স্পেশাল অফার ও কুপন",
+    shopByCategory: "ক্যাটাগরি অনুযায়ী শপিং",
+    seeAll: "সব দেখুন",
     freeDelivery: "ফ্রি ডেলিভারি",
     popularBrands: "জনপ্রিয় ব্র্যান্ড",
     customerReviews: "গ্রাহকদের রিভিউ",
+    newsletterTitle: "ভিআইপি ফ্ল্যাশ ডিল ও কুপন আপডেট পান",
+    newsletterSub: "সীমিত সময়ের অফার, নতুন পণ্য ও কুপন কোড সবার আগে পেতে সাবস্ক্রাইব করুন।",
+    subscribe: "সাবস্ক্রাইব",
     addToCart: "কার্টে যোগ করুন",
+    quickView: "দ্রুত দেখুন",
     outOfStock: "স্টক শেষ",
     buyNow: "এখনই কিনুন",
     emptyCatalogTitle: "এই মুহূর্তে কোনো প্রোডাক্ট পাওয়া যায়নি",
@@ -207,10 +225,50 @@ const initialFun = loadJsonStorage(STORAGE_FUN, {
   scratchRevealed: false,
 });
 
+const VIEW_ROUTES = {
+  home: "/",
+  categories: "/explore",
+  deals: "/deals",
+  funzone: "/funzone",
+  ai: "/ai",
+  wishlist: "/wishlist",
+  cart: "/cart",
+  orders: "/orders",
+  profile: "/account",
+};
+
+function getInitialViewFromPath() {
+  const path = (window.location.pathname || "/").toLowerCase().replace(/\/+$/, "") || "/";
+  if (path === "/explore" || path === "/categories") return "categories";
+  if (path === "/deals" || path === "/offers") return "deals";
+  if (path === "/funzone" || path === "/fun_zone") return "funzone";
+  if (path === "/ai") return "ai";
+  if (path === "/wishlist") return "wishlist";
+  if (path === "/cart") return "cart";
+  if (path === "/orders") return "orders";
+  if (path === "/account" || path === "/profile") return "profile";
+  return "home";
+}
+
+function navigateToView(view, pushUrl = true) {
+  state.view = VIEW_ROUTES[view] ? view : "home";
+  const targetPath = VIEW_ROUTES[state.view] || "/";
+  if (pushUrl && window.location.pathname !== targetPath) {
+    try {
+      window.history.pushState({ view: state.view }, "", targetPath);
+    } catch {
+      // Ignore history restrictions in sandboxed environments
+    }
+  }
+}
+
 const state = {
-  view: "home", // home | categories | deals | funzone | ai | cart | wishlist | orders | profile
+  view: getInitialViewFromPath(),
   lang: localStorage.getItem(STORAGE_LANG) === "BN" ? "BN" : "EN",
   theme: localStorage.getItem(STORAGE_THEME) === "light" ? "light" : "dark",
+  mobileSearchOpen: false,
+  newsletterEmail: "",
+  newsletterDone: false,
   loading: true,
   firebaseConnected: true,
   syncNoticeDismissed: false,
@@ -380,7 +438,14 @@ function updateHeaderChromes() {
   const siteName = cfg.siteName || "MY Shop";
   const tagline = cfg.tagline || "Shop Smart • Live Happy!";
   document.title = `${siteName} — ${tagline}`;
-  document.getElementById("brandSiteName").textContent = siteName;
+  const brandEl = document.getElementById("brandSiteName");
+  if (brandEl) {
+    if (siteName.trim().toLowerCase() === "my shop") {
+      brandEl.innerHTML = `<span class="brand-white">MY</span> <span class="brand-cyan">Shop</span>`;
+    } else {
+      brandEl.textContent = siteName;
+    }
+  }
   document.getElementById("brandTagline").textContent = tagline;
   document.getElementById("footerSiteName").textContent = siteName;
   document.getElementById("footerTagline").textContent = tagline;
@@ -455,9 +520,12 @@ function updateHeaderChromes() {
     notifBadge.textContent = unreadCount;
     notifBadge.classList.toggle("hidden", !state.customer || unreadCount <= 0);
   }
-  document.getElementById("topAccountLabel").textContent = state.customer
-    ? state.customer.displayName.split(" ")[0]
-    : t("signIn");
+  const accBtn = document.getElementById("topAccountBtn");
+  const accLbl = document.getElementById("topAccountLabel");
+  if (accBtn && accLbl) {
+    accBtn.classList.toggle("has-user", Boolean(state.customer));
+    accLbl.textContent = state.customer ? state.customer.displayName.split(" ")[0] : t("signIn");
+  }
 
   document.querySelectorAll("[data-nav]").forEach((el) => {
     const target = el.getAttribute("data-nav");
@@ -550,11 +618,11 @@ function renderProductCard(p) {
   const outOfStock = !p.available || Number(p.stock || 0) <= 0;
   const badgeHtml =
     p.discountPercent > 0
-      ? `<span class="discount-pill">-${p.discountPercent}%</span>`
+      ? `<span class="discount-pill">-${p.discountPercent}% OFF</span>`
       : p.bestSeller
-      ? `<span class="discount-pill" style="background:var(--neon-purple)">BEST</span>`
+      ? `<span class="discount-pill" style="background:linear-gradient(135deg,#8B20FF,#168BFF)">BEST SELLER</span>`
       : p.featured || p.newArrival
-      ? `<span class="discount-pill" style="background:var(--emerald)">NEW</span>`
+      ? `<span class="discount-pill" style="background:linear-gradient(135deg,#10B981,#00E5FF);color:#050B2E">NEW</span>`
       : "";
 
   return `
@@ -572,7 +640,7 @@ function renderProductCard(p) {
         <h3 class="product-title" data-action="open-product" data-id="${escapeHtml(p.id)}">${escapeHtml(title)}</h3>
         <div class="rating-line">★ ${Number(p.rating || 4.8).toFixed(1)} <span class="muted">(${p.reviewCount || 0})</span></div>
         <div class="stock-meta">
-          <span>${outOfStock ? `<span style="color:#fca5a5">${t("outOfStock")}</span>` : p.stock <= 5 ? `<span style="color:var(--amber)">Only ${p.stock} left</span>` : `In Stock`}</span>
+          <span>${outOfStock ? `<span style="color:#FCA5A5">${t("outOfStock")}</span>` : p.stock <= 5 ? `<span style="color:var(--amber)">Only ${p.stock} left</span>` : `<span style="color:#6EE7B7">In Stock</span>`}</span>
           <span>${p.freeDelivery ? "🚚 Free" : ""}</span>
         </div>
         <div class="price-action-row">
@@ -580,19 +648,43 @@ function renderProductCard(p) {
             <span class="price-now">${money(p.price)}</span>
             ${p.originalPrice > p.price ? `<span class="price-old">${money(p.originalPrice)}</span>` : ""}
           </div>
+        </div>
+        <div class="card-cta-row">
           <button
             type="button"
-            class="quick-add-circle"
+            class="card-add-btn"
             data-action="add-cart"
             data-id="${escapeHtml(p.id)}"
-            title="${outOfStock ? t("outOfStock") : t("addToCart")}"
-            aria-label="${outOfStock ? t("outOfStock") : t("addToCart")}"
             ${outOfStock ? "disabled" : ""}
-          >+</button>
+          >${outOfStock ? t("outOfStock") : `+ ${t("addToCart")}`}</button>
+          <button
+            type="button"
+            class="card-qv-btn"
+            data-action="open-product"
+            data-id="${escapeHtml(p.id)}"
+            title="${t("quickView")}"
+          >👁️</button>
         </div>
       </div>
     </article>
   `;
+}
+
+function renderShortcutSvg(type) {
+  switch (type) {
+    case "flash":
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="#FF2E93" stroke-width="2"><path d="M13 2L4 14h7l-1 8 10-12h-7l0-8z" fill="#FF2E93" fill-opacity="0.22" stroke-linejoin="round"/></svg>`;
+    case "mobiles":
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2"><rect x="6" y="2.5" width="12" height="19" rx="2.6" fill="#168BFF" fill-opacity="0.24"/><circle cx="12" cy="18" r="0.9" fill="#00E5FF"/></svg>`;
+    case "laptops":
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2"><rect x="4" y="4.5" width="16" height="11" rx="1.8" fill="#8B20FF" fill-opacity="0.24"/><path d="M2 18.5h20" stroke-linecap="round"/></svg>`;
+    case "fashion":
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="#C084FC" stroke-width="2"><path d="M8.5 4L5 6.5l1.8 3.2L9 8.8V20h6V8.8l2.2.9L19 6.5 15.5 4a3.5 3.5 0 0 1-7 0z" fill="#8B20FF" fill-opacity="0.24" stroke-linejoin="round"/></svg>`;
+    case "accessories":
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="#00E5FF" stroke-width="2"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3.5" y="13" width="3.5" height="6" rx="1.5" fill="#168BFF" fill-opacity="0.28"/><rect x="17" y="13" width="3.5" height="6" rx="1.5" fill="#168BFF" fill-opacity="0.28"/></svg>`;
+    default:
+      return `<svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>`;
+  }
 }
 
 function renderHomeOrBrowse(mode = "home") {
@@ -601,22 +693,11 @@ function renderHomeOrBrowse(mode = "home") {
     ? state.categories
     : Object.keys(CATEGORY_VISUALS).map((id, i) => ({ id, titleEn: id, orderIndex: i + 1 }));
 
-  const guestStrip = !state.customer && mode === "home"
-    ? `
-    <div class="guest-strip">
-      <span>🧭 ${escapeHtml(t("guestBanner"))}</span>
-      <button type="button" class="link-btn" style="color:var(--electric-blue);font-weight:700" data-action="open-auth">${t("signIn")}</button>
-    </div>`
-    : "";
-
-  const popularRow = mode === "home"
-    ? `
-    <div class="chips-row" style="margin-bottom:14px">
-      ${POPULAR_SEARCHES.map(
-        (q) => `<button type="button" class="chip" data-action="quick-search" data-q="${escapeHtml(q)}">🔥 ${escapeHtml(q)}</button>`
-      ).join("")}
-    </div>`
-    : "";
+  const categoryCounts = new Map();
+  for (const p of state.products) {
+    const cid = String(p.categoryId || "").toUpperCase();
+    categoryCounts.set(cid, (categoryCounts.get(cid) || 0) + 1);
+  }
 
   const nowMs = Date.now();
   const configuredBanners = (Array.isArray(state.siteConfig?.banners) ? state.siteConfig.banners : []).filter((b) => {
@@ -626,21 +707,26 @@ function renderHomeOrBrowse(mode = "home") {
     return true;
   });
 
+  const maxDiscount = state.products.reduce((m, p) => Math.max(m, Number(p.discountPercent || 0)), 32);
+  const heroHeadlinePct = Math.max(maxDiscount, 40);
+
   const heroSlides = [
     {
-      badge: `⚡ ${t("heroBadge")}`,
-      title: t("heroTitle"),
-      subtitle: t("heroSub"),
-      imageUrl: "/hero-deals.jpg",
-      ctaText: `⚡ ${t("shopNow")}`,
+      badge: `⚡ ${state.lang === "BN" ? "বিগ সেল" : "Big Sale"}`,
+      titleTop: state.lang === "BN" ? "সর্বোচ্চ" : "Up to",
+      titleHighlight: state.lang === "BN" ? `${heroHeadlinePct}% ছাড়` : `${heroHeadlinePct}% OFF`,
+      subtitle: state.lang === "BN" ? "বেশি কিনুন, বেশি সেভ করুন! MYSHOP10 কোডে ১০% ছাড়।" : "Shop More, Save More! Use MYSHOP10 + Free Delivery on ৳2,500+.",
+      imageUrl: "/welcome-3d.jpg",
+      ctaText: `${t("shopNow")} →`,
       linkUrl: "#catalog",
     },
     ...configuredBanners.map((b) => ({
-      badge: b.badge || "✨ FEATURED DROP",
-      title: b.title || "Special Offer",
+      badge: b.badge || "⚡ FEATURED DROP",
+      titleTop: b.title || "Special Offer",
+      titleHighlight: "",
       subtitle: b.subtitle || "Explore verified deals & fast delivery across Bangladesh.",
-      imageUrl: isSafeHttpUrl(b.imageUrl) ? b.imageUrl : "/welcome-3d.jpg",
-      ctaText: b.ctaText || "Explore Collection →",
+      imageUrl: isSafeHttpUrl(b.imageUrl) ? b.imageUrl : "/hero-deals.jpg",
+      ctaText: b.ctaText || "Explore Deals →",
       linkUrl: b.linkUrl || "#catalog",
     })),
   ];
@@ -649,21 +735,26 @@ function renderHomeOrBrowse(mode = "home") {
   const heroHtml =
     mode === "home" && !state.filters.search
       ? `
-      <div class="hero-bento">
-        <section class="hero-banner glass-panel">
-          <img src="${escapeHtml(activeSlide.imageUrl)}" alt="${escapeHtml(activeSlide.title)}" class="hero-bg-img" onerror="this.src='/welcome-3d.jpg'" />
-          <div class="hero-scrim"></div>
+      <section class="hero-showcase">
+        <div class="hero-banner">
+          <div class="hero-ambient-ring" aria-hidden="true"></div>
           <div class="hero-content">
-            <span class="hero-badge">${escapeHtml(activeSlide.badge)}</span>
-            <h1>${escapeHtml(activeSlide.title)}</h1>
+            <span class="hero-pill-badge">${escapeHtml(activeSlide.badge)}</span>
+            <h1>
+              ${escapeHtml(activeSlide.titleTop)}
+              ${activeSlide.titleHighlight ? `<span class="hero-highlight">${escapeHtml(activeSlide.titleHighlight)}</span>` : ""}
+            </h1>
             <p>${escapeHtml(activeSlide.subtitle)}</p>
             <div class="hero-actions">
               <button type="button" class="btn-neon" data-action="hero-cta" data-url="${escapeHtml(activeSlide.linkUrl)}">
                 ${escapeHtml(activeSlide.ctaText)}
               </button>
-              <button type="button" class="btn-outline" data-nav="deals">${escapeHtml(t("viewDeals"))}</button>
-              <button type="button" class="btn-outline" data-nav="funzone">🎮 ${escapeHtml(t("funZone"))}</button>
+              <button type="button" class="btn-outline sm desktop-only" data-nav="deals">${escapeHtml(t("viewDeals"))}</button>
             </div>
+          </div>
+          <div class="hero-visual-stage">
+            <div class="hero-pedestal-glow" aria-hidden="true"></div>
+            <img src="${escapeHtml(activeSlide.imageUrl)}" alt="${escapeHtml(activeSlide.titleTop)}" class="hero-3d-art" onerror="this.src='/hero-deals.jpg'" />
           </div>
           ${
             heroSlides.length > 1
@@ -677,100 +768,188 @@ function renderHomeOrBrowse(mode = "home") {
                 </div>`
               : ""
           }
-        </section>
+        </div>
         <div class="hero-side-stack">
           <div class="bento-promo-card flash" data-nav="deals">
             <div>
               <small>⚡ LIMITED FLASH SALE</small>
-              <strong>Up to 40% Off + Coupons</strong>
+              <strong>Up to ${heroHeadlinePct}% Off + Live Coupons</strong>
             </div>
             <span class="bento-link">Grab Deals Now →</span>
           </div>
-          <div class="bento-promo-card newdrop" data-nav="funzone">
+          <div class="bento-promo-card funzone" data-nav="funzone">
             <div>
-              <small>🎡 MY FUN ZONE & REWARDS</small>
-              <strong>Spin, Scratch & Win Codes</strong>
+              <small>🎮 MY FUN ZONE & AI HELPER</small>
+              <strong>Spin, Scratch & Win Promo Codes</strong>
             </div>
             <span class="bento-link">Play & Save (${state.fun.points} Pts) →</span>
           </div>
         </div>
+      </section>
+    `
+      : "";
+
+  // 6 Category Shortcut Cards (Flash Deal, Mobiles, Laptops, Fashion, Accessories, More)
+  const shortcutItems = [
+    { key: "flash", label: state.lang === "BN" ? "ফ্ল্যাশ ডিল" : "Flash Deals", action: "shortcut-deals" },
+    { key: "mobiles", label: state.lang === "BN" ? "মোবাইল" : "Mobiles", cat: "MOBILES" },
+    { key: "laptops", label: state.lang === "BN" ? "ল্যাপটপ" : "Laptops", cat: "COMPUTERS" },
+    { key: "fashion", label: state.lang === "BN" ? "ফ্যাশন" : "Fashion", cat: "FASHION" },
+    { key: "accessories", label: state.lang === "BN" ? "অ্যাক্সেসরি" : "Accessories", cat: "ACCESSORIES" },
+    { key: "more", label: state.lang === "BN" ? "আরও দেখুন" : "More", nav: "categories" },
+  ];
+  const shortcutsHtml =
+    mode === "home"
+      ? `
+      <div class="shortcut-grid">
+        ${shortcutItems
+          .map((s) => {
+            const isAct = s.cat && state.filters.category === s.cat;
+            if (s.nav) {
+              return `<button type="button" class="shortcut-card" data-nav="${s.nav}"><div class="shortcut-icon-box">${renderShortcutSvg(s.key)}</div><span class="shortcut-label">${escapeHtml(s.label)}</span></button>`;
+            }
+            if (s.action === "shortcut-deals") {
+              return `<button type="button" class="shortcut-card ${state.filters.tab === "flashSale" ? "active" : ""}" data-action="filter-tab" data-tab="flashSale"><div class="shortcut-icon-box">${renderShortcutSvg(s.key)}</div><span class="shortcut-label">${escapeHtml(s.label)}</span></button>`;
+            }
+            return `<button type="button" class="shortcut-card ${isAct ? "active" : ""}" data-action="filter-cat" data-cat="${s.cat}"><div class="shortcut-icon-box">${renderShortcutSvg(s.key)}</div><span class="shortcut-label">${escapeHtml(s.label)}</span></button>`;
+          })
+          .join("")}
       </div>
     `
       : "";
 
-  const bannerRow = "";
+  // Futuristic Limited Time Deal Promotional Section
+  const promoSectionHtml =
+    mode === "home" && !state.filters.search
+      ? `
+      <section class="promo-showcase-banner">
+        <div>
+          <span class="promo-pill">⚡ ${state.lang === "BN" ? "সীমিত সময়ের ডিল" : "Limited Time Deal"}</span>
+          <h2>
+            ${state.lang === "BN" ? "সেরা মূল্যে" : "Premium Products at"}
+            <span class="promo-gold">${state.lang === "BN" ? "প্রিমিয়াম পণ্য!" : "Best Price!"}</span>
+          </h2>
+          <p class="promo-trust-line">🛡️ ${state.lang === "BN" ? "১০০% অরিজিনাল • দ্রুত ডেলিভারি" : "100% Original Products • Fast Delivery"}</p>
+          <button type="button" class="btn-white-pill" data-nav="deals">
+            ${state.lang === "BN" ? "ডিলস দেখুন" : "Explore Deals"} →
+          </button>
+        </div>
+        <div class="promo-img-stage">
+          <img src="/hero-deals.jpg" alt="Premium Tech Showcase" loading="lazy" />
+        </div>
+      </section>
+    `
+      : "";
 
-  const categoryCardsHtml = `
+  // Shop by Category Grid (dynamic DB categories + live product counts)
+  const displayCategories = mode === "home" ? categories.slice(0, 8) : categories;
+  const categoryGridHtml = `
     <div class="section-head">
-      <h2>🗂️ ${escapeHtml(t("allCategories"))}</h2>
+      <h2>${escapeHtml(mode === "home" ? t("shopByCategory") : t("allCategories"))}</h2>
       ${
         state.filters.category !== "ALL" || state.filters.brand
           ? `<button type="button" class="btn-outline sm" data-action="reset-filters">Reset Filters ✕</button>`
-          : `<button type="button" class="link-btn" style="color:var(--electric-blue);font-weight:700" data-nav="categories">See All ${categories.length} →</button>`
+          : mode === "home"
+          ? `<button type="button" class="see-all-link" data-nav="categories">${escapeHtml(t("seeAll"))} (${categories.length}) →</button>`
+          : `<button type="button" class="see-all-link" data-action="filter-cat" data-cat="ALL">All (${state.products.length})</button>`
       }
     </div>
-    <div class="cat-strip">
-      <button type="button" class="cat-card ${state.filters.category === "ALL" ? "active" : ""}" data-action="filter-cat" data-cat="ALL">
-        <div class="cat-orb" style="background:linear-gradient(135deg,#8B5CF6,#00D4FF)">🌟</div>
-        <span class="cat-title">All (${state.products.length})</span>
-      </button>
-      ${categories
+    <div class="cat-grid">
+      ${displayCategories
         .map((c) => {
           const meta = getCategoryMeta(c.id);
+          const count = categoryCounts.get(String(c.id).toUpperCase()) || 0;
+          const imgHtml = isSafeHttpUrl(c.imageUrl)
+            ? `<img src="${escapeHtml(c.imageUrl)}" alt="${escapeHtml(meta.title)}" loading="lazy" />`
+            : `<span class="cat-tile-emoji">${meta.emoji}</span>`;
           return `
-        <button type="button" class="cat-card ${state.filters.category === c.id ? "active" : ""}" data-action="filter-cat" data-cat="${escapeHtml(c.id)}">
-          <span class="cat-badge">${escapeHtml(meta.badge)}</span>
-          <div class="cat-orb" style="background:linear-gradient(135deg,${escapeHtml(meta.accent)},${escapeHtml(meta.secondary)})">${meta.emoji}</div>
-          <span class="cat-title">${escapeHtml(meta.title)}</span>
+        <button type="button" class="cat-tile ${state.filters.category === c.id ? "active" : ""}" data-action="filter-cat" data-cat="${escapeHtml(c.id)}">
+          <div class="cat-tile-art" style="background:linear-gradient(145deg,${escapeHtml(meta.accent)}33,${escapeHtml(meta.secondary)}44)">
+            ${imgHtml}
+          </div>
+          <span class="cat-tile-title">${escapeHtml(meta.title)}</span>
+          <span class="cat-tile-count">(${count} ${count === 1 ? "item" : "items"})</span>
         </button>`;
         })
         .join("")}
     </div>
   `;
 
-  // Flash Sale + Countdown (Shown on unfiltered Home)
+  // Real-data Homepage Sections
   const flashItems = state.products.filter((p) => p.flashSale || p.discountPercent >= 20).slice(0, 8);
   const flashSectionHtml =
     mode === "home" && !state.filters.search && flashItems.length
       ? `
       <div class="section-head">
-        <h2>⚡ ${escapeHtml(t("flashSale"))}</h2>
+        <h2>${escapeHtml(t("flashSale"))}</h2>
         <span id="flashCountdownEl" class="countdown-pill">Ends in ${formatCountdown(state.flashSeconds)}</span>
       </div>
       <div class="h-scroll-row">${flashItems.map(renderProductCard).join("")}</div>
     `
       : "";
 
-  // Fun Zone & MY AI Spotlight Cards
-  const spotlightHtml =
-    mode === "home" && !state.filters.search
+  const featuredItems = state.products.filter((p) => p.featured).slice(0, 8);
+  const featuredSectionHtml =
+    mode === "home" && !state.filters.search && featuredItems.length
       ? `
-      <div class="spotlight-grid">
-        <div class="spotlight-card" data-nav="funzone">
-          <img src="/fun-zone.jpg" alt="MY Fun Zone" onerror="this.style.display='none'" />
-          <div class="spotlight-overlay">
-            <span class="hero-badge" style="margin:0;width:fit-content">🎡 SPIN • SCRATCH • QUIZ</span>
-            <div>
-              <h3>🎮 MY Fun Zone (${state.fun.points} Pts)</h3>
-              <p class="small" style="color:#cbd5e1;margin-top:4px">Play mini-games & unlock instant checkout coupons like MYSHOP10, SPIN15 & FREEDEL!</p>
-            </div>
-          </div>
-        </div>
-        <div class="spotlight-card" data-nav="ai">
-          <img src="/ai-avatar.jpg" alt="MY AI Assistant" onerror="this.style.display='none'" />
-          <div class="spotlight-overlay">
-            <span class="hero-badge" style="margin:0;width:fit-content">✨ SMART PRODUCT FINDER</span>
-            <div>
-              <h3>🤖 MY AI Shopping Helper</h3>
-              <p class="small" style="color:#cbd5e1;margin-top:4px">Ask for budget phones, gaming setups, free delivery items, or gift ideas from live inventory.</p>
-            </div>
-          </div>
-        </div>
+      <div class="section-head">
+        <h2>${escapeHtml(t("featuredProducts"))}</h2>
+        <button type="button" class="see-all-link" data-action="filter-tab" data-tab="featured">${escapeHtml(t("seeAll"))} →</button>
       </div>
+      <div class="product-grid">${featuredItems.slice(0, 4).map(renderProductCard).join("")}</div>
     `
       : "";
 
-  // Recently Viewed Row
+  const trendingItems = state.products.filter((p) => p.trending).slice(0, 8);
+  const trendingSectionHtml =
+    mode === "home" && !state.filters.search && trendingItems.length
+      ? `
+      <div class="section-head">
+        <h2>${escapeHtml(t("trendingNow"))}</h2>
+        <button type="button" class="see-all-link" data-action="filter-tab" data-tab="trending">${escapeHtml(t("seeAll"))} →</button>
+      </div>
+      <div class="h-scroll-row">${trendingItems.map(renderProductCard).join("")}</div>
+    `
+      : "";
+
+  const bestSellerItems = state.products.filter((p) => p.bestSeller).slice(0, 8);
+  const bestSellerHtml =
+    mode === "home" && !state.filters.search && bestSellerItems.length
+      ? `
+      <div class="section-head">
+        <h2>${escapeHtml(t("bestSeller"))}</h2>
+        <button type="button" class="see-all-link" data-action="filter-tab" data-tab="bestSeller">${escapeHtml(t("seeAll"))} →</button>
+      </div>
+      <div class="h-scroll-row">${bestSellerItems.map(renderProductCard).join("")}</div>
+    `
+      : "";
+
+  const newArrivalsItems = state.products.filter((p) => p.newArrival || p.featured).slice(0, 8);
+  const newArrivalsHtml =
+    mode === "home" && !state.filters.search && newArrivalsItems.length
+      ? `
+      <div class="section-head">
+        <h2>${escapeHtml(t("newArrivals"))}</h2>
+        <button type="button" class="see-all-link" data-action="filter-tab" data-tab="all">${escapeHtml(t("seeAll"))} →</button>
+      </div>
+      <div class="h-scroll-row">${newArrivalsItems.map(renderProductCard).join("")}</div>
+    `
+      : "";
+
+  const recommendedItems = [...state.products]
+    .filter((p) => p.available !== false && Number(p.stock || 0) > 0)
+    .sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
+    .slice(0, 6);
+  const recommendedHtml =
+    mode === "home" && !state.filters.search && recommendedItems.length
+      ? `
+      <div class="section-head">
+        <h2>${escapeHtml(t("recommended"))}</h2>
+      </div>
+      <div class="h-scroll-row">${recommendedItems.map(renderProductCard).join("")}</div>
+    `
+      : "";
+
   const recentItems = state.recentlyViewedIds
     .map((id) => state.products.find((p) => p.id === id))
     .filter(Boolean)
@@ -778,42 +957,68 @@ function renderHomeOrBrowse(mode = "home") {
   const recentHtml =
     mode === "home" && recentItems.length && !state.filters.search
       ? `
-      <div class="section-head"><h2>🕒 ${escapeHtml(t("recentlyViewed"))}</h2></div>
+      <div class="section-head"><h2>${escapeHtml(t("recentlyViewed"))}</h2></div>
       <div class="h-scroll-row">${recentItems.map(renderProductCard).join("")}</div>
     `
       : "";
 
-  // Brands Showcase
-  const brandsHtml = state.brands.length
-    ? `
-    <div class="section-head"><h2>🏷️ ${escapeHtml(t("popularBrands"))}</h2></div>
-    <div class="h-scroll-row">
-      ${state.brands
-        .map(
-          (b) => `
-        <button type="button" class="brand-card ${state.filters.brand === (b.name || b.id) ? "active" : ""}" data-action="filter-brand" data-brand="${escapeHtml(b.name || b.id)}" style="border-color:${escapeHtml(b.accentHex || "var(--border-glass)")}">
-          <strong style="color:${escapeHtml(b.accentHex || "var(--electric-blue)")}">${escapeHtml(b.name || b.id)}</strong>
-          <div class="small muted" style="margin-top:4px">${escapeHtml(b.tagline || "Official Partner")}</div>
-        </button>`
-        )
-        .join("")}
-    </div>`
-    : "";
-
-  const newArrivalsItems = state.products.filter((p) => p.newArrival || p.featured).slice(0, 8);
-  const newArrivalsHtml =
-    mode === "home" && !state.filters.search && newArrivalsItems.length
+  const offersHtml =
+    mode === "home" && !state.filters.search && state.coupons.length
       ? `
       <div class="section-head">
-        <h2>✨ ${escapeHtml(t("newArrivals"))}</h2>
-        <button type="button" class="link-btn" style="color:var(--electric-blue);font-weight:700" data-action="filter-tab" data-tab="featured">View All →</button>
+        <h2>${escapeHtml(t("specialOffers"))}</h2>
+        <button type="button" class="see-all-link" data-nav="deals">${escapeHtml(t("seeAll"))} →</button>
       </div>
-      <div class="h-scroll-row">${newArrivalsItems.map(renderProductCard).join("")}</div>
+      <div class="h-scroll-row">
+        ${state.coupons
+          .slice(0, 4)
+          .map(
+            (c) => `
+          <div class="panel-card" style="flex:0 0 230px;margin:0">
+            <span class="hero-pill-badge" style="margin-bottom:6px">${escapeHtml(c.expiresLabel || "LIVE OFFER")}</span>
+            <h3 style="color:var(--cyan)">${escapeHtml(c.code)}</h3>
+            <p class="small muted" style="margin:6px 0">${escapeHtml(c.title || "")}</p>
+            <button type="button" class="btn-neon sm" data-action="apply-coupon-quick" data-code="${escapeHtml(c.code)}">Apply Code</button>
+          </div>`
+          )
+          .join("")}
+      </div>
+    `
+      : "";
+
+  const spotlightHtml =
+    mode === "home" && !state.filters.search
+      ? `
+      <div class="spotlight-grid">
+        <div class="spotlight-card" data-nav="funzone">
+          <img src="/fun-zone.jpg" alt="MY Fun Zone" loading="lazy" onerror="this.style.display='none'" />
+          <div class="spotlight-overlay">
+            <span class="hero-pill-badge" style="margin:0;width:fit-content">🎡 SPIN • SCRATCH • QUIZ</span>
+            <div>
+              <h3>🎮 MY Fun Zone (${state.fun.points} Pts)</h3>
+              <p class="small" style="color:#E2E8F0;margin-top:4px">Play mini-games & unlock checkout coupons like MYSHOP10, SPIN15 & FREEDEL!</p>
+            </div>
+          </div>
+        </div>
+        <div class="spotlight-card" data-nav="ai">
+          <img src="/ai-avatar.jpg" alt="MY AI Assistant" loading="lazy" onerror="this.style.display='none'" />
+          <div class="spotlight-overlay">
+            <span class="hero-pill-badge" style="margin:0;width:fit-content">✨ SMART PRODUCT FINDER</span>
+            <div>
+              <h3>🤖 MY AI Shopping Helper</h3>
+              <p class="small" style="color:#E2E8F0;margin-top:4px">Ask for budget phones, gaming setups, free delivery items, or gift ideas from live stock.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     `
       : "";
 
   const toolbar = `
-    <div class="filter-toolbar" id="catalogSection">
+    <div class="section-head" id="catalogSection">
+      <h2>${state.filters.search ? `Search: "${escapeHtml(state.filters.search)}"` : "All Products"}</h2>
+    </div>
+    <div class="filter-toolbar">
       <div class="chips-row">
         ${[
           ["all", `All (${state.products.length})`],
@@ -867,14 +1072,29 @@ function renderHomeOrBrowse(mode = "home") {
       </div>`
     : `<div class="product-grid">${filtered.map(renderProductCard).join("")}</div>`;
 
-  // Verified Customer Reviews Strip
+  const brandsHtml = state.brands.length
+    ? `
+    <div class="section-head"><h2>${escapeHtml(t("popularBrands"))}</h2></div>
+    <div class="h-scroll-row">
+      ${state.brands
+        .map(
+          (b) => `
+        <button type="button" class="brand-card ${state.filters.brand === (b.name || b.id) ? "active" : ""}" data-action="filter-brand" data-brand="${escapeHtml(b.name || b.id)}" style="border-color:${escapeHtml(b.accentHex || "var(--border-glass)")}">
+          <strong style="color:${escapeHtml(b.accentHex || "var(--cyan)")}">${escapeHtml(b.name || b.id)}</strong>
+          <div class="small muted" style="margin-top:4px">${escapeHtml(b.tagline || "Official Partner")}</div>
+        </button>`
+        )
+        .join("")}
+    </div>`
+    : "";
+
   const highlightedReviews = state.products
     .flatMap((p) => (Array.isArray(p.reviews) ? p.reviews.map((r) => ({ product: p.name, ...r })) : []))
     .slice(0, 6);
   const reviewsHtml =
     mode === "home" && highlightedReviews.length
       ? `
-      <div class="section-head"><h2>⭐ ${escapeHtml(t("customerReviews"))}</h2></div>
+      <div class="section-head"><h2>${escapeHtml(t("customerReviews"))}</h2></div>
       <div class="h-scroll-row">
         ${highlightedReviews
           .map(
@@ -889,7 +1109,30 @@ function renderHomeOrBrowse(mode = "home") {
       </div>`
       : "";
 
-  return `${guestStrip}${popularRow}${heroHtml}${bannerRow}${categoryCardsHtml}${flashSectionHtml}${spotlightHtml}${newArrivalsHtml}${recentHtml}${toolbar}${catalogBody}${brandsHtml}${reviewsHtml}`;
+  const newsletterHtml =
+    mode === "home"
+      ? `
+      <section class="newsletter-banner">
+        <div style="max-width:520px">
+          <h3 style="font-size:1.15rem;margin-bottom:4px">✉️ ${escapeHtml(t("newsletterTitle"))}</h3>
+          <p class="small muted">${escapeHtml(t("newsletterSub"))}</p>
+        </div>
+        <form id="newsletterForm" class="newsletter-form">
+          <input
+            type="email"
+            id="newsletterEmailInput"
+            class="glass-input"
+            placeholder="you@example.com"
+            value="${escapeHtml(state.newsletterEmail)}"
+            required
+          />
+          <button type="submit" class="btn-neon sm">${state.newsletterDone ? "Subscribed ✓" : t("subscribe")}</button>
+        </form>
+      </section>
+    `
+      : "";
+
+  return `${heroHtml}${shortcutsHtml}${promoSectionHtml}${categoryGridHtml}${flashSectionHtml}${featuredSectionHtml}${trendingSectionHtml}${bestSellerHtml}${spotlightHtml}${newArrivalsHtml}${recommendedHtml}${recentHtml}${offersHtml}${toolbar}${catalogBody}${brandsHtml}${reviewsHtml}${newsletterHtml}`;
 }
 
 function renderDealsView() {
@@ -1675,6 +1918,28 @@ function bindDynamicForms() {
       }
     };
   }
+
+  const newsForm = document.getElementById("newsletterForm");
+  if (newsForm) {
+    newsForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const emailEl = document.getElementById("newsletterEmailInput");
+      const email = emailEl?.value.trim() || "";
+      if (!email) return;
+      try {
+        await api("/api/public/newsletter", {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        });
+        state.newsletterEmail = email;
+        state.newsletterDone = true;
+        toast("Subscribed to MY Shop VIP Flash Drops!");
+        render();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    };
+  }
 }
 
 // ======================== MODALS (Product Detail, Compare, Auth, Checkout) ========================
@@ -2123,7 +2388,7 @@ function openCheckoutModal() {
       toast(`Order ${order.orderNumber} placed successfully!`);
       await refreshCustomerOrders();
       await loadBootstrap(true);
-      state.view = "orders";
+      navigateToView("orders", true);
       render();
     } catch (err) {
       btn.disabled = false;
@@ -2391,7 +2656,7 @@ function showWelcomePopupModal(popup) {
     if (isSafeHttpUrl(popup.buttonUrl)) {
       window.open(popup.buttonUrl, "_blank", "noopener,noreferrer");
     } else if (popup.buttonUrl === "/explore") {
-      state.view = "categories";
+      navigateToView("categories", true);
       render();
     }
     dismiss();
@@ -2517,7 +2782,7 @@ document.addEventListener("click", async (e) => {
   const navTarget = e.target.closest("[data-nav]")?.getAttribute("data-nav");
   if (navTarget) {
     e.preventDefault();
-    state.view = navTarget;
+    navigateToView(navTarget, true);
     window.scrollTo({ top: 0, behavior: "smooth" });
     render();
     return;
@@ -2578,10 +2843,10 @@ document.addEventListener("click", async (e) => {
     if (url === "#catalog") {
       document.getElementById("catalogSection")?.scrollIntoView({ behavior: "smooth" });
     } else if (url === "/explore") {
-      state.view = "categories";
+      navigateToView("categories", true);
       render();
     } else if (url === "/fun_zone") {
-      state.view = "funzone";
+      navigateToView("funzone", true);
       render();
     } else if (isSafeHttpUrl(url)) {
       window.open(url, "_blank", "noopener,noreferrer");
@@ -2633,7 +2898,7 @@ document.addEventListener("click", async (e) => {
     }
   } else if (action === "apply-coupon-quick") {
     state.appliedCoupon = actionEl.getAttribute("data-code") || "";
-    state.view = "cart";
+    navigateToView("cart", true);
     toast(`Coupon ${state.appliedCoupon} ready in cart!`);
     render();
   } else if (action === "start-checkout") {
@@ -2667,7 +2932,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchInput && searchInput.value !== val) searchInput.value = val;
     if (mobSearchInput && mobSearchInput.value !== val) mobSearchInput.value = val;
     updateAutocomplete(val, boxId);
-    if (state.view !== "home" && state.view !== "categories") state.view = "home";
+    if (state.view !== "home" && state.view !== "categories") navigateToView("home", true);
     render();
   };
 
@@ -2676,16 +2941,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("searchSubmitBtn")?.addEventListener("click", () => {
     state.filters.search = searchInput?.value || "";
-    state.view = "home";
+    navigateToView("home", true);
     document.getElementById("searchAutocomplete")?.classList.add("hidden");
     render();
   });
   document.getElementById("mobileSearchSubmitBtn")?.addEventListener("click", () => {
     state.filters.search = mobSearchInput?.value || "";
-    state.view = "home";
+    navigateToView("home", true);
     document.getElementById("mobileSearchAutocomplete")?.classList.add("hidden");
     render();
   });
+  document.getElementById("mobileSearchToggleBtn")?.addEventListener("click", () => {
+    const dock = document.getElementById("mobileSearchDock");
+    if (!dock) return;
+    state.mobileSearchOpen = !state.mobileSearchOpen;
+    dock.classList.toggle("hidden", !state.mobileSearchOpen);
+    if (state.mobileSearchOpen) {
+      document.getElementById("mobileSearchInput")?.focus();
+    }
+  });
+
+  window.addEventListener("popstate", () => {
+    navigateToView(getInitialViewFromPath(), false);
+    render();
+  });
+
   document.getElementById("langToggleBtn").onclick = () => {
     state.lang = state.lang === "EN" ? "BN" : "EN";
     render();
@@ -2696,7 +2976,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   document.getElementById("topAccountBtn").onclick = () => {
     if (state.customer) {
-      state.view = "profile";
+      navigateToView("profile", true);
       render();
     } else {
       openAuthModal("login");
