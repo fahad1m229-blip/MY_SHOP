@@ -727,26 +727,128 @@ function defaultAiSettings() {
   };
 }
 
+function defaultHomepageSections() {
+  return [
+    { key: "hero", label: "Hero Carousel & Promo Bento", enabled: true, sortOrder: 1 },
+    { key: "shortcuts", label: "Quick Category Shortcuts", enabled: true, sortOrder: 2 },
+    { key: "promoBanner", label: "Limited Time Deal Banner", enabled: true, sortOrder: 3 },
+    { key: "categories", label: "Shop by Category Grid", enabled: true, sortOrder: 4 },
+    { key: "flashSale", label: "Flash Sale Strip", enabled: true, sortOrder: 5 },
+    { key: "featured", label: "Featured Products", enabled: true, sortOrder: 6 },
+    { key: "trending", label: "Trending Now", enabled: true, sortOrder: 7 },
+    { key: "bestSeller", label: "Best Sellers", enabled: true, sortOrder: 8 },
+    { key: "spotlight", label: "Fun Zone & MY AI Spotlight", enabled: true, sortOrder: 9 },
+    { key: "newArrivals", label: "New Arrivals", enabled: true, sortOrder: 10 },
+    { key: "recommended", label: "Recommended for You", enabled: true, sortOrder: 11 },
+    { key: "recent", label: "Recently Viewed", enabled: true, sortOrder: 12 },
+    { key: "offers", label: "Coupons & Special Offers", enabled: true, sortOrder: 13 },
+    { key: "catalog", label: "All Products Catalog", enabled: true, sortOrder: 14 },
+    { key: "brands", label: "Popular Brands", enabled: true, sortOrder: 15 },
+    { key: "reviews", label: "Customer Reviews", enabled: true, sortOrder: 16 },
+    { key: "newsletter", label: "VIP Newsletter Banner", enabled: true, sortOrder: 17 },
+  ];
+}
+
+function normalizeBannersList(banners) {
+  if (!Array.isArray(banners)) return [];
+  return banners
+    .filter((b) => b && typeof b === "object")
+    .map((b, idx) => {
+      const fallbackId =
+        b.title && String(b.title).includes("FLASH")
+          ? "bnr_seed_flash"
+          : b.title && String(b.title).includes("DELIVERY")
+          ? "bnr_seed_delivery"
+          : b.title && String(b.title).includes("FUN ZONE")
+          ? "bnr_seed_funzone"
+          : `bnr_legacy_${idx + 1}`;
+      return {
+        id: String(b.id || fallbackId).trim(),
+        badge: String(b.badge || "SPECIAL OFFER").trim(),
+        title: String(b.title || "Special Offer").trim(),
+        subtitle: String(b.subtitle || "").trim(),
+        imageUrl: String(b.imageUrl || "").trim(),
+        mobileImageUrl: String(b.mobileImageUrl || "").trim(),
+        linkUrl: String(b.linkUrl || "#catalog").trim(),
+        ctaText: String(b.ctaText || "Shop Now →").trim(),
+        startDate: String(b.startDate || "").trim(),
+        endDate: String(b.endDate || "").trim(),
+        replaceHero: Boolean(b.replaceHero),
+        active: b.active !== false,
+        sortOrder: Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : idx + 1,
+      };
+    })
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
 function defaultSiteConfig() {
   return {
     siteName: "MY Shop",
     tagline: "Shop Smart • Live Happy!",
     description: "Next-generation futuristic e-commerce platform combining smart shopping, flash deals & interactive fun.",
+    seoTitle: "MY Shop — Shop Smart • Live Happy!",
+    seoDescription: "Explore mobiles, laptops, fashion, ANC audio & flash deals with fast delivery across Bangladesh.",
     logoUrl: "",
+    faviconUrl: "",
     contactEmail: "support@myshop.example",
     contactPhone: "+880 1700-000000",
     address: "Gulshan-2, Dhaka 1212, Bangladesh",
     announcementText: "Cyber Flash Sale Live! Use MYSHOP10 for 10% OFF or FLASH200 for ৳200 Cashback.",
     announcementActive: true,
+    flashSaleMessage: "Up to 40% OFF • Limited Time Drops",
     maintenanceMode: false,
-    primaryHex: "#8B5CF6",
-    accentHex: "#00D4FF",
+    primaryHex: "#8B20FF",
+    accentHex: "#00E5FF",
     footerText: "© MY Shop • Shop Smart • Live Happy!",
     currencySymbol: "৳",
+    taxRatePercent: 0,
+    defaultLanguage: "EN",
+    defaultTheme: "dark",
+    socialLinks: { facebook: "", youtube: "", tiktok: "", telegram: "", instagram: "" },
+    shippingInfo: "Standard delivery 1-3 business days across Bangladesh. Free express delivery on orders ৳2,500+.",
+    privacyPolicy: "MY Shop protects your account credentials, order records, and delivery information securely on our server.",
+    termsContent: "All products include verified warranty support, 7-day easy return eligibility, and transparent pricing.",
+    homepageSections: defaultHomepageSections(),
     banners: [
-      { title: "⚡ CYBER FLASH SALE", subtitle: "Up to 32% OFF on 5G Phones, ANC Audio & RGB Gaming" },
-      { title: "🚚 FREE EXPRESS DELIVERY", subtitle: "Automatic Free Shipping on orders ৳2,500+ or code FREEDEL" },
-      { title: "🎮 MY FUN ZONE REWARDS", subtitle: "Spin Wheel, Scratch Card & Treasure Hunt for real coupons" },
+      {
+        id: "bnr_seed_flash",
+        badge: "⚡ BIG SALE",
+        title: "CYBER FLASH SALE",
+        subtitle: "Up to 40% OFF on 5G Phones, ANC Audio & RGB Gaming",
+        imageUrl: "",
+        mobileImageUrl: "",
+        linkUrl: "#catalog",
+        ctaText: "Shop Flash Deals →",
+        active: true,
+        replaceHero: false,
+        sortOrder: 1,
+      },
+      {
+        id: "bnr_seed_delivery",
+        badge: "🚚 EXPRESS",
+        title: "FREE EXPRESS DELIVERY",
+        subtitle: "Automatic Free Shipping on orders ৳2,500+ or code FREEDEL",
+        imageUrl: "",
+        mobileImageUrl: "",
+        linkUrl: "/deals",
+        ctaText: "Grab Deals →",
+        active: true,
+        replaceHero: false,
+        sortOrder: 2,
+      },
+      {
+        id: "bnr_seed_funzone",
+        badge: "🎮 REWARDS",
+        title: "MY FUN ZONE REWARDS",
+        subtitle: "Spin Wheel, Scratch Card & Treasure Hunt for real coupons",
+        imageUrl: "",
+        mobileImageUrl: "",
+        linkUrl: "/funzone",
+        ctaText: "Play & Win →",
+        active: true,
+        replaceHero: false,
+        sortOrder: 3,
+      },
     ],
     paymentSettings: {
       bKash: { enabled: true, mode: "SANDBOX", instructions: "Pay via bKash merchant gateway" },
@@ -860,6 +962,8 @@ module.exports = {
   defaultFunZoneConfig,
   defaultAiSettings,
   defaultSiteConfig,
+  defaultHomepageSections,
+  normalizeBannersList,
   ensureInitialCatalogSeeded,
   buildFallbackStorefrontSnapshot,
 };

@@ -11,6 +11,8 @@ const {
   defaultWelcomePopup,
   defaultFunZoneConfig,
   defaultAiSettings,
+  defaultHomepageSections,
+  normalizeBannersList,
   ensureInitialCatalogSeeded,
   buildFallbackStorefrontSnapshot,
 } = require("../services/catalogSeedService");
@@ -29,6 +31,15 @@ const EVENT_TO_FIELD = {
 
 function mapPublicProduct(doc) {
   const p = doc.data() || {};
+  const legacyImages = Array.isArray(p.imageUrls)
+    ? p.imageUrls
+    : Array.isArray(p.images)
+    ? p.images
+    : [];
+  const mainImageUrl = p.mainImageUrl || p.imageUrl || legacyImages[0] || "";
+  const approvedReviews = (Array.isArray(p.reviews) ? p.reviews : []).filter(
+    (r) => String(r?.status || "approved").toLowerCase() !== "rejected"
+  );
   return {
     id: doc.id,
     name: p.name || "",
@@ -56,13 +67,13 @@ function mapPublicProduct(doc) {
     sizes: Array.isArray(p.sizes) ? p.sizes : [],
     variants: Array.isArray(p.variants) ? p.variants : [],
     specs: Array.isArray(p.specs) ? p.specs : [],
-    reviews: Array.isArray(p.reviews) ? p.reviews : [],
+    reviews: approvedReviews,
     qaList: Array.isArray(p.qaList) ? p.qaList : [],
-    imageUrls: Array.isArray(p.imageUrls) ? p.imageUrls : [],
-    mainImageUrl: p.mainImageUrl || (Array.isArray(p.imageUrls) && p.imageUrls[0]) || "",
+    imageUrls: legacyImages.length ? legacyImages : mainImageUrl ? [mainImageUrl] : [],
+    mainImageUrl,
     sellerName: p.sellerName || "MY Shop Official",
     rating: Number(p.rating || 4.8),
-    reviewCount: Number(p.reviewCount || 0),
+    reviewCount: Math.max(approvedReviews.length, Number(p.reviewCount || 0)),
     createdAt: toIsoDate(p.createdAt),
     updatedAt: toIsoDate(p.updatedAt),
   };
@@ -136,10 +147,19 @@ router.get("/storefront-bootstrap", async (_req, res, next) => {
       .filter((z) => z.active !== false);
 
     const popups = popupsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const rawSite = siteSnap.exists ? { ...defaultSiteConfig(), ...siteSnap.data() } : defaultSiteConfig();
+    const siteConfig = {
+      ...rawSite,
+      homepageSections:
+        Array.isArray(rawSite.homepageSections) && rawSite.homepageSections.length
+          ? rawSite.homepageSections
+          : defaultHomepageSections(),
+      banners: normalizeBannersList(rawSite.banners),
+    };
 
     res.json({
       firebaseConnected: true,
-      siteConfig: siteSnap.exists ? { ...defaultSiteConfig(), ...siteSnap.data() } : defaultSiteConfig(),
+      siteConfig,
       announcement: annSnap.exists ? annSnap.data() : defaultAnnouncementSettings(),
       socialSupport: socialSnap.exists ? socialSnap.data() : defaultSocialSupportSettings(),
       popups: popups.length > 0 ? popups : [defaultWelcomePopup()],
@@ -212,7 +232,8 @@ router.get("/products", async (req, res, next) => {
 
 router.get("/products/:id", async (req, res, next) => {
   try {
-    const id = sanitizeId(req.params.id, "prod");
+    const { sanitizeDocIdParam } = require("../middleware/validate");
+    const id = sanitizeDocIdParam(req.params.id);
     const fb = getFirebaseStatus();
     if (!fb.connected) {
       const fallback = buildFallbackStorefrontSnapshot().products;
@@ -282,7 +303,15 @@ router.get("/site-config", async (_req, res, next) => {
       return res.json(defaultSiteConfig());
     }
     const snap = await getDb().collection("site_config").doc("main").get();
-    res.json(snap.exists ? { ...defaultSiteConfig(), ...snap.data() } : defaultSiteConfig());
+    const rawSite = snap.exists ? { ...defaultSiteConfig(), ...snap.data() } : defaultSiteConfig();
+    res.json({
+      ...rawSite,
+      homepageSections:
+        Array.isArray(rawSite.homepageSections) && rawSite.homepageSections.length
+          ? rawSite.homepageSections
+          : defaultHomepageSections(),
+      banners: normalizeBannersList(rawSite.banners),
+    });
   } catch (err) {
     next(err);
   }

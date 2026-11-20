@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#050B2E" />
   <title>MY Shop Super Admin</title>
-  <link rel="icon" type="image/svg+xml" href="/admin/logo.svg?v=20261119" />
+  <link rel="icon" type="image/svg+xml" href="/admin/logo.svg?v=20261119b" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/admin/styles.css?v=20261119" />
+  <link rel="stylesheet" href="/admin/styles.css?v=20261119b" />
 </head>
 <body>
   <!-- LOGIN VIEW (/admin) -->
@@ -18,7 +18,7 @@
     <div class="aurora-orb orb-2"></div>
     <div class="login-card glass-panel">
       <div class="brand-lockup">
-        <img src="/admin/logo.svg?v=20261119" alt="MY Shop Logo" class="brand-logo" />
+        <img src="/admin/logo.svg?v=20261119b" alt="MY Shop Logo" class="brand-logo" />
         <div>
           <h1>MY Shop Super Admin</h1>
           <p class="muted">Enterprise Control Center • Render API Gateway</p>
@@ -70,10 +70,10 @@
     <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
     <aside id="sidebar" class="sidebar glass-panel">
       <div class="sidebar-header">
-        <img src="/admin/logo.svg?v=20261119" alt="MY Shop" class="brand-logo-sm" />
+        <img src="/admin/logo.svg?v=20261119b" alt="MY Shop" class="brand-logo-sm" />
         <div class="brand-text">
           <strong>MY Shop</strong>
-          <small>Super Admin</small>
+          <small>Control Center</small>
         </div>
         <button type="button" id="collapseSidebarBtn" class="icon-btn" title="Collapse sidebar">☰</button>
       </div>
@@ -81,26 +81,28 @@
       <nav class="sidebar-nav" id="sidebarNav">
         <div class="sidebar-group-label">COMMERCE</div>
         <button data-tab="dashboard" class="nav-item active">📊 <span>Dashboard</span></button>
-        <button data-tab="products" class="nav-item">📦 <span>Products & Images</span></button>
+        <button data-tab="products" class="nav-item">📦 <span>Products & Bulk</span></button>
+        <button data-tab="inventory" class="nav-item">🏭 <span>Inventory & Stock</span></button>
         <button data-tab="categories" class="nav-item">🗂️ <span>Categories & Brands</span></button>
         <button data-tab="orders" class="nav-item">🚚 <span>Orders & Invoices</span></button>
-        <button data-tab="customers" class="nav-item">👥 <span>Customers & Support</span></button>
-        <button data-tab="payments" class="nav-item">💳 <span>Payments & Refunds</span></button>
+        <button data-tab="customers" class="nav-item">👥 <span>Customers</span></button>
+        <button data-tab="payments" class="nav-item">💳 <span>Payments & Delivery</span></button>
 
         <div class="sidebar-group-label">GROWTH & CMS</div>
-        <button data-tab="marketing" class="nav-item">⚡ <span>Flash Sales & Coupons</span></button>
-        <button data-tab="cms" class="nav-item">🎨 <span>Website & Banners</span></button>
+        <button data-tab="marketing" class="nav-item">⚡ <span>Coupons & Flash Deals</span></button>
+        <button data-tab="banners" class="nav-item">🖼️ <span>Banners & Homepage</span></button>
+        <button data-tab="cms" class="nav-item">🌐 <span>Website Settings</span></button>
         <button data-tab="social" class="nav-item">💬 <span>Social Support</span></button>
         <button data-tab="popups" class="nav-item">📢 <span>3D Popups & Notices</span></button>
         <button data-tab="funzone" class="nav-item">🎰 <span>MY Fun Zone</span></button>
         <button data-tab="ai" class="nav-item">🤖 <span>AI Assistant</span></button>
 
         <div class="sidebar-group-label">SYSTEM</div>
-        <button data-tab="sellers" class="nav-item">🏪 <span>Sellers & Delivery</span></button>
-        <button data-tab="reviews" class="nav-item">⭐ <span>Reviews & Content</span></button>
+        <button data-tab="reviews" class="nav-item">⭐ <span>Reviews & Support</span></button>
+        <button data-tab="sellers" class="nav-item">🏪 <span>Sellers & Zones</span></button>
         <button data-tab="notifications" class="nav-item">🔔 <span>Notifications</span></button>
-        <button data-tab="reports" class="nav-item">📈 <span>Reports & Export</span></button>
-        <button data-tab="settings" class="nav-item">⚙️ <span>Security & Settings</span></button>
+        <button data-tab="reports" class="nav-item">📈 <span>Reports & Backups</span></button>
+        <button data-tab="settings" class="nav-item">⚙️ <span>Security & Logs</span></button>
       </nav>
 
       <div class="sidebar-footer">
@@ -131,9 +133,9 @@
     </div>
   </div>
 
-  <!-- Admin Detail Modal (Order Items Breakdown, etc.) -->
+  <!-- Admin Detail / Confirm / Preview Modal -->
   <div id="adminModalOverlay" class="modal-backdrop hidden"></div>
 
-  <script src="/admin/app.js?v=20261119" defer></script>
+  <script src="/admin/app.js?v=20261119b" defer></script>
 </body>
 </html>

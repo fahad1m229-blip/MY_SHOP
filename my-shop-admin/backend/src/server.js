@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const { env } = require("./config/env");
 const { initFirebaseAdmin, getFirebaseStatus } = require("./config/firebase");
 const { apiLimiter } = require("./middleware/rateLimit");
+const { LOCAL_UPLOADS_DIR } = require("./services/storageService");
 
 const authRoutes = require("./routes/authRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
@@ -42,10 +43,11 @@ function createApp() {
         }
       },
       credentials: true,
+      exposedHeaders: ["Content-Disposition"],
     })
   );
 
-  app.use(express.json({ limit: "2mb" }));
+  app.use(express.json({ limit: "3mb" }));
   app.use(cookieParser());
   app.use("/api/admin", apiLimiter);
 
@@ -73,6 +75,17 @@ function createApp() {
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "API endpoint not found." });
   });
+
+  // Serve fallback uploaded assets cleanly (when Firebase Storage bucket is unavailable)
+  app.use(
+    "/uploads",
+    express.static(LOCAL_UPLOADS_DIR, {
+      setHeaders: (res) => {
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      },
+    })
+  );
 
   // 1. Admin Panel Frontend SPA ONLY at /admin and /admin/* (ZERO Firebase Client SDK in frontend)
   const adminFrontendDir = path.resolve(__dirname, "../../frontend");

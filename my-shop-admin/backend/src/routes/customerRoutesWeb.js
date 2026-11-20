@@ -499,127 +499,203 @@ router.post("/orders", requireCustomerAuth, async (req, res, next) => {
       return res.json({ id: d.id, ...d.data(), deduplicated: true });
     }
 
-    // Validate live catalog prices & stock on server
-    let subtotal = 0;
-    let totalItemCount = 0;
-    let allFreeDelivery = true;
-    const verifiedItems = [];
-
-    for (const raw of items.slice(0, 30)) {
-      const productId = sanitizeId(raw?.productId || "", "");
-      const qty = Math.max(1, Math.min(20, Math.round(Number(raw?.quantity || 1))));
-      const pSnap = await db.collection("catalog_products").doc(productId).get();
-      if (!pSnap.exists) {
-        return res.status(400).json({ error: `Product ${productId} is no longer available.` });
-      }
-      const p = pSnap.data() || {};
-      if (p.published === false || p.available === false) {
-        return res.status(400).json({ error: `${p.name || productId} is currently unavailable.` });
-      }
-      const liveStock = Number(p.stock || 0);
-      if (liveStock < qty) {
-        return res.status(400).json({ error: `Insufficient stock for ${p.name}. Available: ${liveStock}` });
-      }
-      const unitPrice = toSafeNumber(p.price, 0, 0, 50000000);
-      subtotal += unitPrice * qty;
-      totalItemCount += qty;
-      if (!p.freeDelivery) allFreeDelivery = false;
-
-      verifiedItems.push({
-        productId,
-        productName: p.name || "MY Shop Item",
-        unitPrice,
-        quantity: qty,
-        selectedColor: String(raw?.selectedColor || "").trim().slice(0, 40),
-        selectedSize: String(raw?.selectedSize || "").trim().slice(0, 40),
-        mainImageUrl: p.mainImageUrl || "",
-      });
-    }
-
-    let discountAmount = 0;
-    let freeDeliveryCoupon = false;
     const cleanCoupon = String(couponCode || "").trim().toUpperCase();
-    if (cleanCoupon) {
-      const cSnap = await db.collection("catalog_coupons").doc(cleanCoupon).get();
-      if (!cSnap.exists || cSnap.data().active === false) {
-        return res.status(400).json({ error: `Coupon "${cleanCoupon}" is invalid or expired.` });
-      }
-      const c = cSnap.data();
-      if (c.expiresAt) {
-        const expMs = Date.parse(c.expiresAt);
-        if (!Number.isNaN(expMs) && expMs < Date.now()) {
-          return res.status(400).json({ error: `Coupon "${cleanCoupon}" has expired.` });
-        }
-      }
-      const minSpend = Number(c.minSpend || 0);
-      if (subtotal < minSpend) {
-        return res.status(400).json({ error: `Minimum spend for ${cleanCoupon} is ৳${minSpend}.` });
-      }
-      if (c.discountType === "PERCENT") {
-        discountAmount = Math.round((subtotal * Number(c.value || 0)) / 100);
-        if (Number(c.maxDiscount || 0) > 0) {
-          discountAmount = Math.min(discountAmount, Number(c.maxDiscount));
-        }
-      } else if (c.discountType === "FIXED") {
-        discountAmount = Math.min(subtotal, Number(c.value || 0));
-      } else if (c.discountType === "FREE_DELIVERY") {
-        freeDeliveryCoupon = true;
-      }
-    }
-
-    const deliveryFee = allFreeDelivery || freeDeliveryCoupon || subtotal >= 2500 ? 0 : 80;
-    const totalAmount = Math.max(0, subtotal - discountAmount + deliveryFee);
     const isCod = cleanMethod.toLowerCase().includes("cash");
     const orderNumber = `MYS-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
-    const itemsSummary = verifiedItems.map((i) => `${i.productName} x${i.quantity}`).join(", ").slice(0, 240);
-
     const orderRef = db.collection("users").doc(uid).collection("orders").doc();
-    const orderPayload = {
-      userId: uid,
-      orderNumber,
-      idempotencyKey: cleanIdem,
-      itemsSummary,
-      itemCount: totalItemCount,
-      items: verifiedItems,
-      shippingAddress: cleanAddress,
-      paymentMethod: cleanMethod,
-      paymentStatus: isCod ? "COD_PENDING" : "PENDING",
-      orderStatus: "Pending",
-      transactionRef: isCod ? "" : `WEB-${crypto.randomBytes(4).toString("hex").toUpperCase()}`,
-      trackingCode: "",
-      couponCode: cleanCoupon,
-      subtotal,
-      discountAmount,
-      deliveryFee,
-      totalAmount,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
 
-    const batch = db.batch();
-    batch.set(orderRef, orderPayload);
-    for (const item of verifiedItems) {
-      batch.update(db.collection("catalog_products").doc(item.productId), {
-        stock: admin.firestore.FieldValue.increment(-item.quantity),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    // Atomic Firestore Transaction prevents race-condition negative stock & enforces coupon limits
+    const orderPayload = await db.runTransaction(async (tx) => {
+      const uniqueItems = [];
+      for (const raw of items.slice(0, 30)) {
+        const productId = sanitizeId(raw?.productId || "", "");
+        const qty = Math.max(1, Math.min(20, Math.round(Number(raw?.quantity || 1))));
+        if (!productId) continue;
+        uniqueItems.push({
+          productId,
+          qty,
+          selectedColor: String(raw?.selectedColor || "").trim().slice(0, 40),
+          selectedSize: String(raw?.selectedSize || "").trim().slice(0, 40),
+        });
+      }
+      if (uniqueItems.length === 0) {
+        const e = new Error("Your cart is empty.");
+        e.statusCode = 400;
+        throw e;
+      }
+
+      // Deduplicate reads by productId in case multiple variants of same product are ordered
+      const prodIds = Array.from(new Set(uniqueItems.map((x) => x.productId)));
+      const prodSnapshots = new Map();
+      for (const pid of prodIds) {
+        const snap = await tx.get(db.collection("catalog_products").doc(pid));
+        prodSnapshots.set(pid, snap);
+      }
+
+      const couponRef = cleanCoupon ? db.collection("catalog_coupons").doc(cleanCoupon) : null;
+      const couponSnap = couponRef ? await tx.get(couponRef) : null;
+      const existingCartSnap = await tx.get(db.collection("users").doc(uid).collection("cart"));
+
+      let subtotal = 0;
+      let totalItemCount = 0;
+      let allFreeDelivery = true;
+      const verifiedItems = [];
+      const qtyByProduct = new Map();
+
+      for (const line of uniqueItems) {
+        qtyByProduct.set(line.productId, (qtyByProduct.get(line.productId) || 0) + line.qty);
+      }
+
+      for (const [pid, totalQty] of qtyByProduct.entries()) {
+        const pSnap = prodSnapshots.get(pid);
+        if (!pSnap || !pSnap.exists) {
+          const e = new Error(`Product ${pid} is no longer available.`);
+          e.statusCode = 400;
+          throw e;
+        }
+        const p = pSnap.data() || {};
+        if (p.published === false || p.available === false) {
+          const e = new Error(`${p.name || pid} is currently unavailable.`);
+          e.statusCode = 400;
+          throw e;
+        }
+        const liveStock = Number(p.stock || 0);
+        if (liveStock < totalQty) {
+          const e = new Error(`Insufficient stock for ${p.name}. Available: ${liveStock}`);
+          e.statusCode = 400;
+          throw e;
+        }
+      }
+
+      for (const line of uniqueItems) {
+        const p = prodSnapshots.get(line.productId).data() || {};
+        const unitPrice = toSafeNumber(p.price, 0, 0, 50000000);
+        subtotal += unitPrice * line.qty;
+        totalItemCount += line.qty;
+        if (!p.freeDelivery) allFreeDelivery = false;
+
+        verifiedItems.push({
+          productId: line.productId,
+          productName: p.name || "MY Shop Item",
+          unitPrice,
+          quantity: line.qty,
+          selectedColor: line.selectedColor,
+          selectedSize: line.selectedSize,
+          mainImageUrl: p.mainImageUrl || p.imageUrl || "",
+        });
+      }
+
+      let discountAmount = 0;
+      let freeDeliveryCoupon = false;
+      if (cleanCoupon) {
+        if (!couponSnap || !couponSnap.exists || couponSnap.data().active === false) {
+          const e = new Error(`Coupon "${cleanCoupon}" is invalid or expired.`);
+          e.statusCode = 400;
+          throw e;
+        }
+        const c = couponSnap.data();
+        if (c.expiresAt) {
+          const expMs = Date.parse(c.expiresAt);
+          if (!Number.isNaN(expMs) && expMs < Date.now()) {
+            const e = new Error(`Coupon "${cleanCoupon}" has expired.`);
+            e.statusCode = 400;
+            throw e;
+          }
+        }
+        const usageLimit = Number(c.usageLimit || 0);
+        const usedCount = Number(c.usedCount || 0);
+        if (usageLimit > 0 && usedCount >= usageLimit) {
+          const e = new Error(`Coupon "${cleanCoupon}" usage limit has been reached.`);
+          e.statusCode = 400;
+          throw e;
+        }
+        const minSpend = Number(c.minSpend || 0);
+        if (subtotal < minSpend) {
+          const e = new Error(`Minimum spend for ${cleanCoupon} is ৳${minSpend}.`);
+          e.statusCode = 400;
+          throw e;
+        }
+        if (c.discountType === "PERCENT") {
+          discountAmount = Math.round((subtotal * Number(c.value || 0)) / 100);
+          if (Number(c.maxDiscount || 0) > 0) {
+            discountAmount = Math.min(discountAmount, Number(c.maxDiscount));
+          }
+        } else if (c.discountType === "FIXED") {
+          discountAmount = Math.min(subtotal, Number(c.value || 0));
+        } else if (c.discountType === "FREE_DELIVERY") {
+          freeDeliveryCoupon = true;
+        }
+      }
+
+      const deliveryFee = allFreeDelivery || freeDeliveryCoupon || subtotal >= 2500 ? 0 : 80;
+      const totalAmount = Math.max(0, subtotal - discountAmount + deliveryFee);
+      const itemsSummary = verifiedItems.map((i) => `${i.productName} x${i.quantity}`).join(", ").slice(0, 240);
+      const now = admin.firestore.FieldValue.serverTimestamp();
+
+      const payload = {
+        userId: uid,
+        orderNumber,
+        idempotencyKey: cleanIdem,
+        itemsSummary,
+        itemCount: totalItemCount,
+        items: verifiedItems,
+        shippingAddress: cleanAddress,
+        paymentMethod: cleanMethod,
+        paymentStatus: isCod ? "COD_PENDING" : "PENDING",
+        orderStatus: "Pending",
+        transactionRef: isCod ? "" : `WEB-${crypto.randomBytes(4).toString("hex").toUpperCase()}`,
+        trackingCode: "",
+        couponCode: cleanCoupon,
+        subtotal,
+        discountAmount,
+        deliveryFee,
+        totalAmount,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      tx.set(orderRef, payload);
+      for (const [pid, qty] of qtyByProduct.entries()) {
+        const pData = prodSnapshots.get(pid).data() || {};
+        const prevStock = Number(pData.stock || 0);
+        const nextStock = Math.max(0, prevStock - qty);
+        tx.update(db.collection("catalog_products").doc(pid), {
+          stock: nextStock,
+          updatedAt: now,
+        });
+        tx.set(db.collection("inventory_logs").doc(), {
+          productId: pid,
+          productName: pData.name || pid,
+          previousStock: prevStock,
+          newStock: nextStock,
+          delta: -qty,
+          reason: `Customer Checkout (${orderNumber})`,
+          adminUsername: "system",
+          createdAt: now,
+        });
+      }
+      if (couponRef && cleanCoupon) {
+        tx.update(couponRef, {
+          usedCount: admin.firestore.FieldValue.increment(1),
+          updatedAt: now,
+        });
+      }
+      existingCartSnap.docs.forEach((d) => {
+        if (!d.data().savedForLater) tx.delete(d.ref);
       });
-    }
-    const existingCart = await db.collection("users").doc(uid).collection("cart").get();
-    existingCart.docs.forEach((d) => {
-      if (!d.data().savedForLater) batch.delete(d.ref);
-    });
-    const notifRef = db.collection("users").doc(uid).collection("notifications").doc();
-    batch.set(notifRef, {
-      userId: uid,
-      title: `Order Placed • ${orderNumber}`,
-      body: `We received your order for ${itemsSummary} (Total: ৳${totalAmount}).`,
-      category: "ORDER",
-      read: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      const notifRef = db.collection("users").doc(uid).collection("notifications").doc();
+      tx.set(notifRef, {
+        userId: uid,
+        title: `Order Placed • ${orderNumber}`,
+        body: `We received your order for ${itemsSummary} (Total: ৳${totalAmount}).`,
+        category: "ORDER",
+        read: false,
+        createdAt: now,
+        updatedAt: now,
+      });
 
-    await batch.commit();
+      return payload;
+    });
 
     res.status(201).json({
       id: orderRef.id,

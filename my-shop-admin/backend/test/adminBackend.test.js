@@ -442,6 +442,198 @@ test("Admin login, Admin->Customer live catalog sync, Customer registration/cart
       headers: { Cookie: custCookie },
     });
     assert.equal(markReadRes.status, 200);
+
+    // Review moderation ("rejected") hides review from public product detail
+    const adminReviews = await (
+      await fetch(`${baseUrl}/api/admin/cms/reviews`, { headers: { Cookie: cookiePair } })
+    ).json();
+    const targetRev = adminReviews.items.find((r) => r.productId === prodId);
+    assert.ok(targetRev);
+    const modRes = await fetch(`${baseUrl}/api/admin/cms/reviews/${targetRev.userId}/${targetRev.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ status: "rejected" }),
+    });
+    assert.equal(modRes.status, 200);
+    const prodAfterMod = await (await fetch(`${baseUrl}/api/public/products/${prodId}`)).json();
+    assert.equal(prodAfterMod.product.reviews.some((r) => r.id === targetRev.id), false);
+
+    // Legacy dotted doc ID validation + p_mob_1 update preserves existing reviews & flashSale flags
+    const { sanitizeDocIdParam, isValidAssetUrl } = require("../src/middleware/validate");
+    assert.equal(sanitizeDocIdParam("prod.legacy.v1"), "prod.legacy.v1");
+    assert.equal(isValidAssetUrl("/uploads/catalog/test-img.png"), true);
+    const editMob1 = await fetch(`${baseUrl}/api/admin/catalog/products/p_mob_1`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({
+        name: "NovaPulse 5G (8GB/256GB) Updated",
+        price: 18490,
+        stock: 20,
+      }),
+    });
+    assert.equal(editMob1.status, 200);
+    const mob1Detail = await (await fetch(`${baseUrl}/api/admin/catalog/products/p_mob_1`, {
+      headers: { Cookie: cookiePair },
+    })).json();
+    assert.equal(mob1Detail.flashSale, true);
+    assert.ok(Array.isArray(mob1Detail.reviews) && mob1Detail.reviews.length >= 1);
+
+    // Bulk product actions + inventory adjust + inventory logs
+    const bulkUnpub = await fetch(`${baseUrl}/api/admin/catalog/products/bulk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ ids: [prodId], action: "unpublish" }),
+    });
+    assert.equal(bulkUnpub.status, 200);
+    assert.equal((await bulkUnpub.json()).affected, 1);
+
+    const bulkPub = await fetch(`${baseUrl}/api/admin/catalog/products/bulk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ ids: [prodId], action: "publish" }),
+    });
+    assert.equal(bulkPub.status, 200);
+
+    const adjStock = await fetch(`${baseUrl}/api/admin/catalog/inventory/adjust`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ productId: prodId, delta: 4, reason: "Restock batch #2" }),
+    });
+    assert.equal(adjStock.status, 200);
+    assert.equal((await adjStock.json()).newStock, 17);
+
+    const invLogs = await (
+      await fetch(`${baseUrl}/api/admin/settings/inventory-logs`, { headers: { Cookie: cookiePair } })
+    ).json();
+    assert.ok(invLogs.items.some((l) => l.productId === prodId && l.delta === 4));
+
+    // Category 409 conflict & ?reassignTo relocation
+    const createTempCat = await fetch(`${baseUrl}/api/admin/catalog/categories`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ id: "TEMP_CAT", titleEn: "Temp Cat" }),
+    });
+    assert.equal(createTempCat.status, 201);
+    await fetch(`${baseUrl}/api/admin/catalog/products`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ id: "prod_temp_cat_link", name: "Temp Linked Item", categoryId: "TEMP_CAT", price: 500, stock: 3 }),
+    });
+    const delConflict = await fetch(`${baseUrl}/api/admin/catalog/categories/TEMP_CAT`, {
+      method: "DELETE",
+      headers: { Cookie: cookiePair },
+    });
+    assert.equal(delConflict.status, 409);
+    const delReassign = await fetch(`${baseUrl}/api/admin/catalog/categories/TEMP_CAT?reassignTo=ACCESSORIES`, {
+      method: "DELETE",
+      headers: { Cookie: cookiePair },
+    });
+    assert.equal(delReassign.status, 200);
+    assert.equal((await delReassign.json()).reassignedCount, 1);
+
+    // PUT /site-config preserves existing banners & supports banner reorder
+    const upSite = await fetch(`${baseUrl}/api/admin/cms/site-config`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({
+        siteName: "MY Shop",
+        seoTitle: "MY Shop — Cyber Deals",
+        shippingInfo: "Express courier within 24h in Dhaka.",
+      }),
+    });
+    assert.equal(upSite.status, 200);
+    const siteAfter = await (await fetch(`${baseUrl}/api/admin/cms/site-config`, { headers: { Cookie: cookiePair } })).json();
+    assert.ok(Array.isArray(siteAfter.banners) && siteAfter.banners.length >= 3);
+    const reorderRes = await fetch(`${baseUrl}/api/admin/cms/banners/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ ids: ["bnr_seed_funzone", "bnr_seed_flash", "bnr_seed_delivery"] }),
+    });
+    assert.equal(reorderRes.status, 200);
+    assert.equal((await reorderRes.json()).banners[0].id, "bnr_seed_funzone");
+
+    // Admin Order edit (XSS shippingAddress test) + invoice escape + Cancel restores stock
+    const targetOrder = adminOrders.items.find((o) => o.orderNumber === orderJson.orderNumber);
+    assert.ok(targetOrder);
+    const editOrderRes = await fetch(`${baseUrl}/api/admin/orders/${targetOrder.userId}/${targetOrder.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({
+        orderStatus: "Cancelled",
+        shippingAddress: "Fahad <script>alert(1)</script>, Dhaka 1212",
+        adminNote: "Customer requested cancel",
+      }),
+    });
+    assert.equal(editOrderRes.status, 200);
+
+    // Product stock restored from 17 -> 19 after cancelling qty 2 order
+    const stockRestoredDetail = await (await fetch(`${baseUrl}/api/public/products/${prodId}`)).json();
+    assert.equal(stockRestoredDetail.product.stock, 19);
+
+    const invRes = await (
+      await fetch(`${baseUrl}/api/admin/orders/${targetOrder.userId}/${targetOrder.id}/invoice`, {
+        headers: { Cookie: cookiePair },
+      })
+    ).json();
+    assert.equal(invRes.html.includes("<script>alert(1)</script>"), false);
+    assert.ok(invRes.html.includes("&lt;script&gt;"));
+
+    // Coupon usageLimit enforcement & toggle
+    const limCouponRes = await fetch(`${baseUrl}/api/admin/marketing/coupons`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({
+        code: "ONEUSE",
+        title: "Single Use Promo",
+        discountType: "FIXED",
+        value: 100,
+        minSpend: 500,
+        usageLimit: 1,
+      }),
+    });
+    assert.equal(limCouponRes.status, 201);
+    const firstCouponUse = await fetch(`${baseUrl}/api/customer/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: custCookie },
+      body: JSON.stringify({
+        items: [{ productId: prodId, quantity: 1 }],
+        shippingAddress: "Fahad, +8801700000000, Banani, Dhaka",
+        paymentMethod: "Cash on Delivery",
+        couponCode: "ONEUSE",
+      }),
+    });
+    assert.equal(firstCouponUse.status, 201);
+    const secondCouponUse = await fetch(`${baseUrl}/api/customer/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: custCookie },
+      body: JSON.stringify({
+        items: [{ productId: prodId, quantity: 1 }],
+        shippingAddress: "Fahad, +8801700000000, Banani, Dhaka",
+        paymentMethod: "Cash on Delivery",
+        couponCode: "ONEUSE",
+      }),
+    });
+    assert.equal(secondCouponUse.status, 400);
+
+    // Backup export + history + guarded restore
+    const backupRes = await fetch(`${baseUrl}/api/admin/settings/backup`, {
+      headers: { Cookie: cookiePair },
+    });
+    assert.equal(backupRes.status, 200);
+    const backupJson = await backupRes.json();
+    assert.ok(Array.isArray(backupJson.catalog_products));
+
+    const badRestore = await fetch(`${baseUrl}/api/admin/settings/restore`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: cookiePair },
+      body: JSON.stringify({ confirmRestore: "WRONG", backup: backupJson }),
+    });
+    assert.equal(badRestore.status, 400);
+
+    const histRes = await (
+      await fetch(`${baseUrl}/api/admin/settings/backup/history`, { headers: { Cookie: cookiePair } })
+    ).json();
+    assert.ok(histRes.items.length >= 1);
   }
 
   // Newsletter subscription validation and success

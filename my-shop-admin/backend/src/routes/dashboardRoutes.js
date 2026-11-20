@@ -7,22 +7,24 @@ const router = express.Router();
 router.use(requireAdminAuth);
 
 // GET /api/admin/dashboard
-router.get("/", async (req, res, next) => {
+router.get("/", async (_req, res, next) => {
   try {
     const db = getDb();
-    const [productsSnap, categoriesSnap, usersSnap, ordersSnap, sellersSnap, auditSnap] =
+    const [productsSnap, categoriesSnap, usersSnap, ordersSnap, sellersSnap, couponsSnap, auditSnap] =
       await Promise.all([
         db.collection("catalog_products").get(),
         db.collection("catalog_categories").get(),
         db.collection("users").get(),
         db.collectionGroup("orders").get(),
         db.collection("sellers").get(),
+        db.collection("catalog_coupons").get(),
         db.collection("admin_audit_logs").orderBy("createdAt", "desc").limit(12).get(),
       ]);
 
     const products = productsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     const orders = ordersSnap.docs.map((d) => ({ id: d.id, path: d.ref.path, ...d.data() }));
     const customers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const coupons = couponsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -38,6 +40,7 @@ router.get("/", async (req, res, next) => {
 
     const productSales = new Map();
     const dailyMap = new Map();
+    const monthlyMap = new Map();
     const orderStatusBreakdown = {
       Pending: 0,
       Confirmed: 0,
@@ -77,19 +80,25 @@ router.get("/", async (req, res, next) => {
 
       if (createdIso) {
         const dayKey = createdIso.slice(0, 10);
-        const cur = dailyMap.get(dayKey) || { date: dayKey, revenue: 0, orders: 0 };
-        cur.orders += 1;
-        if (isCountedRevenue) cur.revenue += amount;
-        dailyMap.set(dayKey, cur);
+        const curDay = dailyMap.get(dayKey) || { date: dayKey, revenue: 0, orders: 0 };
+        curDay.orders += 1;
+        if (isCountedRevenue) curDay.revenue += amount;
+        dailyMap.set(dayKey, curDay);
+
+        const monthKey = createdIso.slice(0, 7);
+        const curMonth = monthlyMap.get(monthKey) || { month: monthKey, revenue: 0, orders: 0 };
+        curMonth.orders += 1;
+        if (isCountedRevenue) curMonth.revenue += amount;
+        monthlyMap.set(monthKey, curMonth);
       }
 
       if (Array.isArray(o.items) && status !== "Cancelled") {
         for (const item of o.items) {
-          const pid = item.productId || item.name;
+          const pid = item.productId || item.name || item.productName;
           if (!pid) continue;
           const prev = productSales.get(pid) || {
             productId: pid,
-            name: item.name || pid,
+            name: item.productName || item.name || pid,
             unitsSold: 0,
             revenue: 0,
           };
@@ -104,6 +113,7 @@ router.get("/", async (req, res, next) => {
 
     const lowStockProducts = products.filter((p) => Number(p.stock || 0) > 0 && Number(p.stock || 0) <= 5);
     const outOfStockProducts = products.filter((p) => Number(p.stock || 0) <= 0);
+    const activeCoupons = coupons.filter((c) => c.active !== false).length;
 
     const recentOrders = [...orders]
       .sort((a, b) => (toIsoDate(b.createdAt) || "").localeCompare(toIsoDate(a.createdAt) || ""))
@@ -139,6 +149,10 @@ router.get("/", async (req, res, next) => {
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-14);
 
+    const monthlySeries = Array.from(monthlyMap.values())
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .slice(-6);
+
     const recentActivities = auditSnap.docs.map((d) => ({
       id: d.id,
       ...d.data(),
@@ -163,11 +177,14 @@ router.get("/", async (req, res, next) => {
         avgOrderValue,
         pendingPayments,
         totalSellers: sellersSnap.size,
+        activeCoupons,
+        totalCoupons: coupons.length,
         lowStockCount: lowStockProducts.length,
         outOfStockCount: outOfStockProducts.length,
       },
       orderStatusBreakdown,
       salesSeries,
+      monthlySeries,
       recentOrders,
       recentCustomers,
       bestSellingProducts,

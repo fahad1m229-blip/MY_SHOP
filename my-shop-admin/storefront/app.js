@@ -341,6 +341,13 @@ function isSafeHttpUrl(raw) {
   }
 }
 
+function isSafeAssetUrl(raw) {
+  if (typeof raw !== "string" || !raw.trim()) return false;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("/uploads/") && !trimmed.includes("..")) return true;
+  return isSafeHttpUrl(trimmed);
+}
+
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -426,7 +433,7 @@ function getSocialSvg(platformId) {
 }
 
 function renderSocialBadgeIcon(p) {
-  if (isSafeHttpUrl(p.iconUrl)) {
+  if (isSafeAssetUrl(p.iconUrl)) {
     return `<span class="social-icon-dot"><img src="${escapeHtml(p.iconUrl)}" alt="${escapeHtml(p.name)}" /></span>`;
   }
   const bg = p.id === "tiktok" ? "linear-gradient(135deg,#111827,#FE2C55,#00F2EA)" : escapeHtml(p.colorHex || "#8B5CF6");
@@ -437,7 +444,22 @@ function updateHeaderChromes() {
   const cfg = state.siteConfig || {};
   const siteName = cfg.siteName || "MY Shop";
   const tagline = cfg.tagline || "Shop Smart • Live Happy!";
-  document.title = `${siteName} — ${tagline}`;
+  document.title = cfg.seoTitle || `${siteName} — ${tagline}`;
+  const metaDesc = document.querySelector('meta[name="description"]');
+  const ogDesc = document.querySelector('meta[property="og:description"]');
+  if (metaDesc && cfg.seoDescription) metaDesc.setAttribute("content", cfg.seoDescription);
+  if (ogDesc && cfg.seoDescription) ogDesc.setAttribute("content", cfg.seoDescription);
+
+  const logoSrc = isSafeAssetUrl(cfg.logoUrl) ? cfg.logoUrl.trim() : "/logo.svg?v=20261119b";
+  const hdrLogo = document.getElementById("headerLogoImg");
+  const ftrLogo = document.getElementById("footerLogoImg");
+  if (hdrLogo && hdrLogo.getAttribute("src") !== logoSrc) hdrLogo.setAttribute("src", logoSrc);
+  if (ftrLogo && ftrLogo.getAttribute("src") !== logoSrc) ftrLogo.setAttribute("src", logoSrc);
+
+  const favLink = document.getElementById("faviconLink");
+  const favSrc = isSafeAssetUrl(cfg.faviconUrl) ? cfg.faviconUrl.trim() : "/logo.svg?v=20261119b";
+  if (favLink && favLink.getAttribute("href") !== favSrc) favLink.setAttribute("href", favSrc);
+
   const brandEl = document.getElementById("brandSiteName");
   if (brandEl) {
     if (siteName.trim().toLowerCase() === "my shop") {
@@ -456,10 +478,25 @@ function updateHeaderChromes() {
   document.getElementById("footerAddress").textContent = cfg.address || "Gulshan-2, Dhaka 1212, Bangladesh";
   document.getElementById("footerCopyright").textContent = cfg.footerText || `© ${siteName} • ${tagline}`;
 
-  // Footer Social Pills (Facebook / YouTube / TikTok / Telegram)
+  // Footer Social Pills (Facebook / YouTube / TikTok / Telegram + optional Instagram from CMS)
   const footerSocialRow = document.getElementById("footerSocialRow");
   if (footerSocialRow) {
-    const platforms = ((state.socialSupport || DEFAULT_SOCIAL_SUPPORT).platforms || []).filter((p) => p.enabled !== false);
+    const cmsLinks = cfg.socialLinks || {};
+    const platforms = ((state.socialSupport || DEFAULT_SOCIAL_SUPPORT).platforms || [])
+      .filter((p) => p.enabled !== false)
+      .map((p) => ({
+        ...p,
+        url: isSafeHttpUrl(p.url) ? p.url : isSafeHttpUrl(cmsLinks[p.id]) ? cmsLinks[p.id] : p.url,
+      }));
+    if (isSafeHttpUrl(cmsLinks.instagram)) {
+      platforms.push({
+        id: "instagram",
+        name: "Instagram",
+        url: cmsLinks.instagram,
+        colorHex: "#E1306C",
+        enabled: true,
+      });
+    }
     footerSocialRow.innerHTML = platforms
       .map(
         (p) => `
@@ -492,11 +529,17 @@ function updateHeaderChromes() {
     annBar.classList.add("hidden");
   }
 
-  // Render Firebase connection notice if Render Admin SDK env is not configured
+  // Maintenance / Render Firebase connection notice
   const syncBar = document.getElementById("syncStatusBar");
   const syncText = document.getElementById("syncStatusText");
   if (syncBar && syncText) {
-    if (!state.firebaseConnected && !state.syncNoticeDismissed) {
+    if (cfg.maintenanceMode && !state.syncNoticeDismissed) {
+      syncText.textContent =
+        state.lang === "BN"
+          ? "সাইট মেইনটেন্যান্স নোটিশ: অর্ডার প্রসেসিং সাময়িকভাবে ধীর হতে পারে।"
+          : "Storefront Notice: Scheduled maintenance is active — catalog browsing remains available.";
+      syncBar.classList.remove("hidden");
+    } else if (!state.firebaseConnected && !state.syncNoticeDismissed) {
       syncText.textContent =
         state.lang === "BN"
           ? "প্রিভিউ মোড চালু: Render-এ FIREBASE_SERVICE_ACCOUNT_JSON/BASE64 যোগ করলে অ্যাডমিন ও ইউজার লাইভ সিঙ্ক হবে।"
@@ -583,7 +626,7 @@ function getFilteredProducts() {
 
 function renderProductVisual(p, cls = "product-thumb") {
   const title = state.lang === "BN" && p.nameBn ? p.nameBn : p.name;
-  if (isSafeHttpUrl(p.mainImageUrl)) {
+  if (isSafeAssetUrl(p.mainImageUrl)) {
     return `<img src="${escapeHtml(p.mainImageUrl)}" alt="${escapeHtml(title)}" class="${cls}" loading="lazy" />`;
   }
   const meta = getCategoryMeta(p.categoryId);
@@ -700,36 +743,57 @@ function renderHomeOrBrowse(mode = "home") {
   }
 
   const nowMs = Date.now();
-  const configuredBanners = (Array.isArray(state.siteConfig?.banners) ? state.siteConfig.banners : []).filter((b) => {
-    if (!b || b.active === false) return false;
-    if (b.startDate && Date.parse(b.startDate) > nowMs) return false;
-    if (b.endDate && Date.parse(b.endDate) < nowMs) return false;
-    return true;
-  });
+  const isSmallScreen = typeof window !== "undefined" && window.innerWidth <= 640;
+  const configuredBanners = (Array.isArray(state.siteConfig?.banners) ? state.siteConfig.banners : [])
+    .filter((b) => {
+      if (!b || b.active === false) return false;
+      if (b.startDate && Date.parse(b.startDate) > nowMs) return false;
+      if (b.endDate && Date.parse(b.endDate) < nowMs) return false;
+      return true;
+    })
+    .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
 
   const maxDiscount = state.products.reduce((m, p) => Math.max(m, Number(p.discountPercent || 0)), 32);
   const heroHeadlinePct = Math.max(maxDiscount, 40);
 
-  const heroSlides = [
-    {
-      badge: `⚡ ${state.lang === "BN" ? "বিগ সেল" : "Big Sale"}`,
-      titleTop: state.lang === "BN" ? "সর্বোচ্চ" : "Up to",
-      titleHighlight: state.lang === "BN" ? `${heroHeadlinePct}% ছাড়` : `${heroHeadlinePct}% OFF`,
-      subtitle: state.lang === "BN" ? "বেশি কিনুন, বেশি সেভ করুন! MYSHOP10 কোডে ১০% ছাড়।" : "Shop More, Save More! Use MYSHOP10 + Free Delivery on ৳2,500+.",
-      imageUrl: "/welcome-3d.jpg",
-      ctaText: `${t("shopNow")} →`,
-      linkUrl: "#catalog",
-    },
-    ...configuredBanners.map((b) => ({
+  const defaultHeroSlide = {
+    badge: `⚡ ${state.lang === "BN" ? "বিগ সেল" : "Big Sale"}`,
+    titleTop: state.lang === "BN" ? "সর্বোচ্চ" : "Up to",
+    titleHighlight: state.lang === "BN" ? `${heroHeadlinePct}% ছাড়` : `${heroHeadlinePct}% OFF`,
+    subtitle:
+      state.siteConfig?.flashSaleMessage ||
+      (state.lang === "BN"
+        ? "বেশি কিনুন, বেশি সেভ করুন! MYSHOP10 কোডে ১০% ছাড়।"
+        : "Shop More, Save More! Use MYSHOP10 + Free Delivery on ৳2,500+."),
+    imageUrl: "/welcome-3d.jpg",
+    ctaText: `${t("shopNow")} →`,
+    linkUrl: "#catalog",
+  };
+
+  const mapBannerToSlide = (b) => {
+    const imgPick =
+      isSmallScreen && isSafeAssetUrl(b.mobileImageUrl)
+        ? b.mobileImageUrl
+        : isSafeAssetUrl(b.imageUrl)
+        ? b.imageUrl
+        : "/hero-deals.jpg";
+    return {
       badge: b.badge || "⚡ FEATURED DROP",
       titleTop: b.title || "Special Offer",
       titleHighlight: "",
       subtitle: b.subtitle || "Explore verified deals & fast delivery across Bangladesh.",
-      imageUrl: isSafeHttpUrl(b.imageUrl) ? b.imageUrl : "/hero-deals.jpg",
+      imageUrl: imgPick,
       ctaText: b.ctaText || "Explore Deals →",
       linkUrl: b.linkUrl || "#catalog",
-    })),
-  ];
+    };
+  };
+
+  const replaceHeroSlides = configuredBanners.filter((b) => b.replaceHero).map(mapBannerToSlide);
+  const secondaryBannerSlides = configuredBanners.filter((b) => !b.replaceHero).map(mapBannerToSlide);
+  const heroSlides =
+    replaceHeroSlides.length > 0
+      ? [...replaceHeroSlides, ...secondaryBannerSlides]
+      : [defaultHeroSlide, ...secondaryBannerSlides];
   const activeSlide = heroSlides[state.heroSlideIdx % heroSlides.length] || heroSlides[0];
 
   const heroHtml =
@@ -859,7 +923,7 @@ function renderHomeOrBrowse(mode = "home") {
         .map((c) => {
           const meta = getCategoryMeta(c.id);
           const count = categoryCounts.get(String(c.id).toUpperCase()) || 0;
-          const imgHtml = isSafeHttpUrl(c.imageUrl)
+          const imgHtml = isSafeAssetUrl(c.imageUrl)
             ? `<img src="${escapeHtml(c.imageUrl)}" alt="${escapeHtml(meta.title)}" loading="lazy" />`
             : `<span class="cat-tile-emoji">${meta.emoji}</span>`;
           return `
@@ -1132,7 +1196,51 @@ function renderHomeOrBrowse(mode = "home") {
     `
       : "";
 
-  return `${heroHtml}${shortcutsHtml}${promoSectionHtml}${categoryGridHtml}${flashSectionHtml}${featuredSectionHtml}${trendingSectionHtml}${bestSellerHtml}${spotlightHtml}${newArrivalsHtml}${recommendedHtml}${recentHtml}${offersHtml}${toolbar}${catalogBody}${brandsHtml}${reviewsHtml}${newsletterHtml}`;
+  if (mode !== "home") {
+    return `${categoryGridHtml}${toolbar}${catalogBody}${brandsHtml}`;
+  }
+
+  const sectionMap = {
+    hero: heroHtml,
+    shortcuts: shortcutsHtml,
+    promoBanner: promoSectionHtml,
+    categories: categoryGridHtml,
+    flashSale: flashSectionHtml,
+    featured: featuredSectionHtml,
+    trending: trendingSectionHtml,
+    bestSeller: bestSellerHtml,
+    spotlight: spotlightHtml,
+    newArrivals: newArrivalsHtml,
+    recommended: recommendedHtml,
+    recent: recentHtml,
+    offers: offersHtml,
+    catalog: `${toolbar}${catalogBody}`,
+    brands: brandsHtml,
+    reviews: reviewsHtml,
+    newsletter: newsletterHtml,
+  };
+
+  const configuredSections =
+    Array.isArray(state.siteConfig?.homepageSections) && state.siteConfig.homepageSections.length
+      ? [...state.siteConfig.homepageSections].sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
+      : Object.keys(sectionMap).map((key, idx) => ({ key, enabled: true, sortOrder: idx + 1 }));
+
+  if (state.filters.search) {
+    return `${toolbar}${catalogBody}`;
+  }
+
+  const usedKeys = new Set();
+  const orderedParts = [];
+  for (const s of configuredSections) {
+    usedKeys.add(s.key);
+    if (s.enabled !== false && sectionMap[s.key]) {
+      orderedParts.push(sectionMap[s.key]);
+    }
+  }
+  for (const [k, html] of Object.entries(sectionMap)) {
+    if (!usedKeys.has(k) && html) orderedParts.push(html);
+  }
+  return orderedParts.join("");
 }
 
 function renderDealsView() {
@@ -1949,6 +2057,45 @@ function closeModal() {
   document.getElementById("modalOverlay").innerHTML = "";
 }
 
+function openPolicyModal(policyType) {
+  const cfg = state.siteConfig || {};
+  const map = {
+    shipping: {
+      title: "🚚 Shipping & Delivery Policy",
+      body:
+        cfg.shippingInfo ||
+        "Standard delivery 1-3 business days across Bangladesh. Free express delivery on orders ৳2,500+.",
+    },
+    privacy: {
+      title: "🔒 Privacy Policy",
+      body:
+        cfg.privacyPolicy ||
+        "MY Shop protects your account credentials, order records, and delivery information securely on our server.",
+    },
+    terms: {
+      title: "📜 Terms & Conditions",
+      body:
+        cfg.termsContent ||
+        "All products include verified warranty support, 7-day easy return eligibility, and transparent pricing.",
+    },
+  };
+  const doc = map[policyType] || map.shipping;
+  const modal = document.getElementById("modalOverlay");
+  modal.innerHTML = `
+    <div class="modal-card" style="max-width:540px">
+      <div class="modal-head">
+        <strong>${escapeHtml(doc.title)}</strong>
+        <button type="button" class="close-circle" data-action="close-modal" aria-label="Close">✕</button>
+      </div>
+      <p class="small" style="line-height:1.65;white-space:pre-line">${escapeHtml(doc.body)}</p>
+      <div style="margin-top:16px;text-align:right">
+        <button type="button" class="btn-neon sm" data-action="close-modal">Got It</button>
+      </div>
+    </div>
+  `;
+  modal.classList.remove("hidden");
+}
+
 function renderModalReviewsHtml(product) {
   const reviews = Array.isArray(product.reviews) ? product.reviews : [];
   return `
@@ -2003,7 +2150,7 @@ function openProductModal(productId) {
   state.selectedDetailColor = (p.colors && p.colors[0]) || "";
   state.selectedDetailSize = (p.sizes && p.sizes[0]) || "";
 
-  const images = [p.mainImageUrl, ...(p.imageUrls || [])].filter((u, idx, arr) => isSafeHttpUrl(u) && arr.indexOf(u) === idx);
+  const images = [p.mainImageUrl, ...(p.imageUrls || [])].filter((u, idx, arr) => isSafeAssetUrl(u) && arr.indexOf(u) === idx);
   const title = state.lang === "BN" && p.nameBn ? p.nameBn : p.name;
   const outOfStock = !p.available || Number(p.stock || 0) <= 0;
   const specsHtml =
@@ -2603,7 +2750,7 @@ function showWelcomePopupModal(popup) {
 
   const cfg = state.socialSupport || DEFAULT_SOCIAL_SUPPORT;
   const platforms = (cfg.platforms || DEFAULT_SOCIAL_SUPPORT.platforms).filter((p) => p.enabled !== false);
-  const imgSrc = isSafeHttpUrl(popup.imageUrl) ? popup.imageUrl : "/welcome-3d.jpg";
+  const imgSrc = isSafeAssetUrl(popup.imageUrl) ? popup.imageUrl : "/welcome-3d.jpg";
 
   root.innerHTML = `
     <div class="popup-3d-card" style="background:${escapeHtml(popup.bgHex || "#120B29")}">
@@ -2715,6 +2862,13 @@ async function loadBootstrap(skipPopup = false) {
     if (boot.funZone) state.funZone = boot.funZone;
     if (boot.aiSettings) state.aiSettings = boot.aiSettings;
 
+    if (!localStorage.getItem(STORAGE_LANG) && ["EN", "BN"].includes(state.siteConfig.defaultLanguage)) {
+      state.lang = state.siteConfig.defaultLanguage;
+    }
+    if (!localStorage.getItem(STORAGE_THEME) && ["dark", "light"].includes(state.siteConfig.defaultTheme)) {
+      state.theme = state.siteConfig.defaultTheme;
+    }
+
     if (me.authenticated && me.customer) {
       state.customer = me.customer;
       if (Array.isArray(me.cart)) state.cart = me.cart;
@@ -2794,6 +2948,7 @@ document.addEventListener("click", async (e) => {
   const id = actionEl.getAttribute("data-id");
 
   if (action === "open-product") openProductModal(id);
+  else if (action === "open-policy") openPolicyModal(actionEl.getAttribute("data-policy") || "shipping");
   else if (action === "close-modal") closeModal();
   else if (action === "add-cart") addToCart(id);
   else if (action === "toggle-wish") toggleWishlist(id);

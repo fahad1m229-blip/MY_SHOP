@@ -137,7 +137,16 @@ router.post("/payments/:userId/:orderId/refund", async (req, res, next) => {
 router.get("/coupons", async (_req, res, next) => {
   try {
     const snap = await getDb().collection("catalog_coupons").get();
-    res.json({ items: snap.docs.map((d) => ({ id: d.id, ...d.data() })) });
+    res.json({
+      items: snap.docs.map((d) => ({
+        id: d.id,
+        usedCount: Number(d.data()?.usedCount || 0),
+        usageLimit: Number(d.data()?.usageLimit || 1000),
+        maxDiscount: Number(d.data()?.maxDiscount || 0),
+        active: d.data()?.active !== false,
+        ...d.data(),
+      })),
+    });
   } catch (err) {
     next(err);
   }
@@ -180,6 +189,21 @@ router.post("/coupons", async (req, res, next) => {
     await getDb().collection("catalog_coupons").doc(cleanCode).set(payload, { merge: true });
     await logAdminAudit(req, "COUPON_UPSERT", `catalog_coupons/${cleanCode}`, payload);
     res.status(201).json({ id: cleanCode, ...payload });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch("/coupons/:code/toggle", async (req, res, next) => {
+  try {
+    const cleanCode = sanitizeId(req.params.code.toUpperCase(), "COUPON");
+    const active = Boolean(req.body?.active);
+    const ref = getDb().collection("catalog_coupons").doc(cleanCode);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ error: "Coupon not found." });
+    await ref.update({ active, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    await logAdminAudit(req, "COUPON_TOGGLE", `catalog_coupons/${cleanCode}`, { active });
+    res.json({ ok: true, code: cleanCode, active });
   } catch (err) {
     next(err);
   }
